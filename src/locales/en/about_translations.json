@@ -1,0 +1,28 @@
+{
+  "about": {
+    "title": "About Blizbi",
+    "founded": "Founded in 2024",
+    "history": {
+      "title": "Our History",
+      "paragraph1": "Blizbi was founded in 2024 with a simple vision: to make it easier for people to discover and participate in local activities they will love.",
+      "paragraph2": "We believe that the best experiences are often those that happen in our own neighborhoods, but that we don't always know about. With artificial intelligence and local expertise, we help you explore your city in a whole new way."
+    },
+    "mission": {
+      "title": "Our Mission",
+      "paragraph": "We have a dual mission: to help users find activities that enrich their lives, and to support small, local organizers by connecting them with interested participants. Our AI-powered platform continuously learns from your preferences to give you better recommendations."
+    },
+    "team": {
+      "title": "The Team",
+      "paragraph1": "Blizbi is created by a small team of technologists, designers, and culture enthusiasts based in Oslo. We combine technical expertise with a deep passion for local cultural offerings and activities.",
+      "paragraph2": "Our team works every day to improve the platform and ensure that you get the most relevant and exciting recommendations."
+    },
+    "contact": {
+      "title": "Contact",
+      "description": "We greatly appreciate feedback and suggestions from our users. If you want to get in touch with us, send an email to",
+      "email": "contact@blizbi.no",
+      "website_text": "or visit our website",
+      "website_url": "www.blizbi.no"
+    },
+    "navigation": "About"
+  }
+} 

@@ -1,0 +1,34 @@
+.markdown-body p {
+  margin: 0;
+}
+
+.markdown-body pre {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.markdown-body code {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9em;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.markdown-body a {
+  color: #6e8efb;
+  text-decoration: underline;
+}
+
+.markdown-body blockquote {
+  border-left: 3px solid rgba(110, 142, 251, 0.3);
+  margin: 8px 0;
+  padding-left: 12px;
+  color: rgba(224, 224, 224, 0.8);
+}

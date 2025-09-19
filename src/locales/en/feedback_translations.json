@@ -1,0 +1,18 @@
+{
+  "feedback": {
+    "title": "We want to hear from you!",
+    "subtitle": "Do you have suggestions, ideas, or something that doesn't quite work as it should?",
+    "description": "Your input helps us make Blizbi better – and shows that we're building something people actually use and care about.",
+    "topics_title": "What we'd love feedback on:",
+    "topics": [
+      "Did you find relevant activities?",
+      "Was anything unclear or difficult to use?",
+      "Was something missing in your area?",
+      "What do you think about the experience in general?"
+    ],
+    "contact_title": "Feel free to send us an email at",
+    "contact_email": "kontakt@blizbi.no",
+    "contact_description": "We read everything and really appreciate your thoughts!",
+    "navigation": "Give Feedback"
+  }
+} 

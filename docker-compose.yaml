@@ -1,0 +1,26 @@
+services:
+  blizbi-webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blizbi-webapp
+    restart: always
+    ports:
+      - "8080:80"
+
+  blizbi-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: blizbi-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - ./backend/.env
+    restart: always
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/src/config:/app/dist/src/config

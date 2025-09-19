@@ -1,0 +1,50 @@
+{
+  "terms": {
+    "title": "Terms of Use and Data Policy for Blizbi",
+    "last_updated": "Last updated: 05.06.2025",
+    "welcome": {
+      "title": "Welcome to Blizbi!",
+      "description": "Blizbi is a platform that helps you discover and participate in events and activities in your local community. We're passionate about making life more social and connected, and we work to give you the best possible experience."
+    },
+    "what_we_do": {
+      "title": "1. What we do",
+      "description": "Blizbi collects and displays information about public events from a range of sources, including municipal calendars, cultural venues, and local organizations. We only show factual details like event names, dates, and locations. We always link back to the original source so you can find more information and stay updated."
+    },
+    "partners": {
+      "title": "2. Our partners and providers",
+      "description": "We also collaborate with partners and providers who want to be featured on Blizbi. These partners pay to be visible on our platform, and many have given us direct access to the content they want to share. This ensures a rich variety of activities and events for our users."
+    },
+    "user_responsibility": {
+      "title": "3. Your use and responsibility",
+      "description": "Blizbi does not own or organize the events listed on the platform. We are only a facilitator and a tool to help you find what you're looking for. We recommend always checking the original source for the latest information, as event details can change."
+    },
+    "copyright": {
+      "title": "4. Respect for content and copyright",
+      "description": "We respect content creators and copyright. We do not copy original text or images without an agreement. If you believe any content on Blizbi violates your rights, please contact us at",
+      "email": "personvern@blizbi.no"
+    },
+    "your_data": {
+      "title": "5. Your data",
+      "description": "Blizbi does not collect or store any personal data about you unless you create a profile. If you do, we will clearly explain how we use and protect your data in accordance with Norwegian law (GDPR)."
+    },
+    "transparency": {
+      "title": "6. Transparency and Norwegian law",
+      "intro": "We are committed to being transparent and following Norwegian law at all times. We always:",
+      "show_source": "Show where the event information comes from",
+      "link_back": "Always link back to the original source",
+      "no_copy": "Never copy protected content without permission",
+      "respect_guidelines": "Respect any guidelines and terms from the sources we use",
+      "listen_concerns": "Listen and address any concerns or questions"
+    },
+    "changes": {
+      "title": "7. Changes to these terms",
+      "description": "We may update these terms from time to time. By using Blizbi, you agree to the latest version. The latest version will always be available at",
+      "url": "www.blizbi.no/terms-of-use"
+    },
+    "organizers": {
+      "title": "8. To organizers and rights holders",
+      "description": "If you represent an organization, municipality, or entity that publishes events, and wish to be included, excluded, or collaborate with us – please get in touch. Our intention is to make activities more visible and easily accessible to the public."
+    },
+    "navigation": "Terms of Use"
+  }
+} 
