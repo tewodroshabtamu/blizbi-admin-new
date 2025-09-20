@@ -230,7 +230,9 @@
   },
   "admin.settings": {
     "title": "Admin Settings",
-    "description": "Manage admin settings and preferences."
+    "description": "Manage admin settings and preferences.",
+    "language": "Language",
+    "language_description": "Choose your preferred language for the admin interface."
   },
   "dashboard": "Dashboard",
   "events": "Events",

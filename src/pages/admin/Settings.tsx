@@ -1,5 +1,5 @@
 import React from "react";
-import { LanguageSelector } from "@/components/settings/LanguageSelector";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { useTranslation } from "react-i18next";
 
 const AdminSettings: React.FC = () => {

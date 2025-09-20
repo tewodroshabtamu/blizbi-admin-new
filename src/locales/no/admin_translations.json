@@ -229,7 +229,9 @@
   },
   "admin.settings": {
     "title": "Innstillinger for admin",
-    "description": "Administrer innstillinger og preferanser."
+    "description": "Administrer innstillinger og preferanser.",
+    "language": "Språk",
+    "language_description": "Velg ditt foretrukne språk for admin-grensesnittet."
   },
   "dashboard": "Adminpanel",
   "events": "Hendelser",

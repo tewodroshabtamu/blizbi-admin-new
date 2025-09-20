@@ -1,13 +1,9 @@
-import { Routes, Route } from "react-router-dom";
-import PublicRoutes from "./routes/PublicRoutes";
+import { Routes, Route, Navigate } from "react-router-dom";
 import AdminRoutes from "./routes/AdminRoutes";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
-import PublicProtectedRoute from "./components/PublicProtectedRoute";
-import Redirect from "./pages/public/Redirect";
 
 const App = () => (
   <Routes>
-    <Route path="/redirect" element={<Redirect />} />
     <Route
       path="/admin/*"
       element={
@@ -16,14 +12,7 @@ const App = () => (
         </AdminProtectedRoute>
       }
     />
-    <Route
-      path="/*"
-      element={
-        <PublicProtectedRoute>
-          <PublicRoutes />
-        </PublicProtectedRoute>
-      }
-    />
+    <Route path="/*" element={<Navigate to="/admin/dashboard" replace />} />
   </Routes>
 );
 

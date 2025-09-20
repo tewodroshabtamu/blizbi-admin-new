@@ -8,9 +8,6 @@ import App from "./App.tsx";
 import i18n from "./i18n.ts";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BookmarkProvider } from "./contexts/BookmarkContext.tsx";
-import { ConsentProvider } from "./contexts/ConsentContext.tsx";
-import ConsentBanner from "./components/privacy/ConsentBanner.tsx";
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -35,13 +32,8 @@ createRoot(document.getElementById("root")).render(
       <I18nextProvider i18n={i18n}>
         <BrowserRouter>
           <QueryClientProvider client={queryClient}>
-            <ConsentProvider>
-              <BookmarkProvider>
-                <App />
-                <ConsentBanner />
-                <Toaster position="top-right" closeButton richColors />
-              </BookmarkProvider>
-            </ConsentProvider>
+            <App />
+            <Toaster position="top-right" closeButton richColors />
           </QueryClientProvider>
         </BrowserRouter>
       </I18nextProvider>
