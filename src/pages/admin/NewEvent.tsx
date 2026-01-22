@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { supabase } from "../../supabase-client";
+import { supabase } from "../../lib/supabase-client";
 import { toast } from "sonner";
 import ImageUpload from "../../components/ImageUpload";
 import { useEventForm } from "../../hooks/useEventForm";
@@ -43,7 +43,7 @@ const NewEvent: React.FC = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const { data, error } = await supabase
         .from('event')
         .select(`
@@ -91,7 +91,7 @@ const NewEvent: React.FC = () => {
   const uploadImage = async (file: File): Promise<string> => {
     const fileExt = file.name.split(".").pop();
     const fileName = `${Date.now()}.${fileExt}`;
-    
+
     const { error: uploadError } = await supabase.storage
       .from("event-covers")
       .upload(fileName, file);
@@ -116,8 +116,8 @@ const NewEvent: React.FC = () => {
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      eventForm.setFormData(prev => ({ 
-        ...prev, 
+      eventForm.setFormData(prev => ({
+        ...prev,
         image: file // Store file for upload, like providers
       }));
     }
@@ -127,11 +127,11 @@ const NewEvent: React.FC = () => {
     if (!eventForm.validateForm()) {
       return;
     }
-    
+
     // Handle image upload like providers do
     let coverImage = eventForm.formData.imageUrl;
     const file = eventForm.formData.image;
-    
+
     try {
       // If there's a new image, upload it
       if (file) {
@@ -147,9 +147,9 @@ const NewEvent: React.FC = () => {
         ...eventForm.formData,
         imageUrl: coverImage || '' // Use uploaded URL or empty string
       };
-      
+
       await submitEvent(updatedFormData, providers, isEditMode, editId || undefined);
-      
+
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       toast.error(t("admin.new_event.failed_to_upload_image"));
@@ -195,8 +195,8 @@ const NewEvent: React.FC = () => {
             className="!bg-blizbi-teal hover:!bg-blizbi-teal/90 !text-white"
           >
             <Save className="w-4 h-4 mr-2" />
-            {isSubmitting 
-              ? (isEditMode ? t("admin.new_event.updating") : t("admin.new_event.creating")) 
+            {isSubmitting
+              ? (isEditMode ? t("admin.new_event.updating") : t("admin.new_event.creating"))
               : (isEditMode ? t("admin.new_event.update_event") : t("admin.new_event.create_event"))
             }
           </Button>
@@ -206,17 +206,17 @@ const NewEvent: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Image Upload Section */}
         <Card className="p-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium mb-2">{t("admin.new_event.event_cover_image")}</h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  {t("admin.new_event.cover_image_description")}
-                </p>
-              </div>
-              <ImageUpload
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-medium mb-2">{t("admin.new_event.event_cover_image")}</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                {t("admin.new_event.cover_image_description")}
+              </p>
+            </div>
+            <ImageUpload
               imagePreview={imagePreview || eventForm.formData.imageUrl}
-                onImageChange={handleImageChange}
-              />
+              onImageChange={handleImageChange}
+            />
           </div>
         </Card>
 

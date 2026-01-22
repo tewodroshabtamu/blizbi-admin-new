@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { 
-  getDashboardStats, 
-  getProviderMetrics, 
+import {
+  getDashboardStats,
+  getProviderMetrics,
   getRecentEvents,
   type DashboardStats,
   type ProviderMetrics,
-  type RecentEvent 
-} from "@/api/dashboard";
+  type RecentEvent
+} from "../services/dashboard";
 
 interface UseDashboardReturn {
   dashboardStats: DashboardStats | null;

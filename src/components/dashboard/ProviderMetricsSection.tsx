@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
-import type { ProviderMetrics } from "@/api/dashboard";
+import type { ProviderMetrics } from "@/services/dashboard";
 
 interface ProviderMetricsSectionProps {
   providers: ProviderMetrics[];
@@ -19,7 +19,7 @@ interface ProviderMetricsSectionProps {
 
 const DetailedMetricsSection = ({ provider }: { provider: ProviderMetrics }) => {
   const { t } = useTranslation();
-  
+
   return (
     <div className="mt-6 space-y-6">
       {/* Recent Events */}
@@ -65,11 +65,11 @@ export const ProviderMetricsSection: React.FC<ProviderMetricsSectionProps> = ({
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">{t("admin.dashboard.provider_metrics")}</h2>
-      
+
       {providers.length > 0 ? (
         providers.map((provider) => (
           <div key={provider.id} className="space-y-4">
-            <Card 
+            <Card
               className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
               onClick={() => onToggleExpansion(provider.id)}
             >
@@ -79,9 +79,9 @@ export const ProviderMetricsSection: React.FC<ProviderMetricsSectionProps> = ({
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900">{provider.name}</h3>
                     <p className="text-sm text-gray-500">
-                      {t("admin.dashboard.active_events_summary", { 
-                        activeEvents: provider.activeEvents, 
-                        totalEvents: provider.totalEvents 
+                      {t("admin.dashboard.active_events_summary", {
+                        activeEvents: provider.activeEvents,
+                        totalEvents: provider.totalEvents
                       })}
                     </p>
                   </div>
@@ -104,7 +104,7 @@ export const ProviderMetricsSection: React.FC<ProviderMetricsSectionProps> = ({
                       {provider.totalEvents}
                     </p>
                   </div>
-                  
+
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center gap-2 text-gray-600 mb-2">
                       <UserCheck className="w-4 h-4" />

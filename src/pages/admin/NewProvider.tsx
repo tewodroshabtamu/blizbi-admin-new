@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { supabase } from "../../supabase-client";
+import { supabase } from "../../lib/supabase-client";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -428,8 +428,8 @@ const NewProvider: React.FC = () => {
                     ? t("admin.new_provider.updating")
                     : t("admin.new_provider.creating")
                   : isEditMode
-                  ? t("admin.new_provider.update_provider")
-                  : t("admin.new_provider.add_provider")}
+                    ? t("admin.new_provider.update_provider")
+                    : t("admin.new_provider.add_provider")}
               </Button>
             </CardFooter>
           </Card>

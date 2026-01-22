@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
-import type { RecentEvent } from "@/api/dashboard";
+import type { RecentEvent } from "@/services/dashboard";
 
 interface RecentEventsSectionProps {
   events: RecentEvent[];
@@ -16,7 +16,7 @@ export const RecentEventsSection: React.FC<RecentEventsSectionProps> = ({ events
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">{t("admin.dashboard.recent_events_section")}</h2>
-      
+
       {events.length > 0 ? (
         <Card className="p-6">
           <div className="space-y-4">

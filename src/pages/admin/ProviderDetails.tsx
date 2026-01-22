@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../../supabase-client';
+import { supabase } from '../../lib/supabase-client';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';

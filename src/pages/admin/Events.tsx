@@ -5,7 +5,7 @@ import Table from "../../components/Table";
 import { Card } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { supabase } from "../../supabase-client";
+import { supabase } from "../../lib/supabase-client";
 import { Database } from "../../types/supabase";
 import { toast } from "sonner";
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -68,17 +68,17 @@ const Events: React.FC = () => {
         return;
       }
 
-                const transformedEvents = eventsData.map(event => {
-            const { providers, ...eventData } = event;
-            return {
-              ...eventData,
-              provider_name: Array.isArray(providers) && providers.length > 0 
-                ? providers[0].name 
-                : t('admin.events.unknown_provider'),
-              views: 0,
-              participants: 0,
-            };
-          });
+      const transformedEvents = eventsData.map(event => {
+        const { providers, ...eventData } = event;
+        return {
+          ...eventData,
+          provider_name: Array.isArray(providers) && providers.length > 0
+            ? providers[0].name
+            : t('admin.events.unknown_provider'),
+          views: 0,
+          participants: 0,
+        };
+      });
 
       setEvents(transformedEvents);
       setTotalCount(transformedEvents.length);
@@ -115,7 +115,7 @@ const Events: React.FC = () => {
               setEvents(prev => prev.filter(event => event.id !== payload.old.id));
               setTotalCount(prev => prev - 1);
             } else if (payload.eventType === 'UPDATE') {
-              setEvents(prev => prev.map(event => 
+              setEvents(prev => prev.map(event =>
                 event.id === payload.new.id ? { ...event, ...payload.new } : event
               ));
             }
@@ -148,7 +148,7 @@ const Events: React.FC = () => {
   // Client-side filtering like providers page
   const filteredEvents = events.filter((event) => {
     if (!searchTerm) return true;
-    
+
     return (
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.provider_name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -187,9 +187,9 @@ const Events: React.FC = () => {
       return { success: true, data };
     } catch (err) {
       console.error('Error creating event:', err);
-      return { 
-        success: false, 
-        error: err instanceof Error ? err.message : 'Failed to create event' 
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to create event'
       };
     }
   };
@@ -207,18 +207,18 @@ const Events: React.FC = () => {
       if (error) throw error;
 
       // Update local state
-      setEvents(prev => prev.map(event => 
-        event.id === id 
+      setEvents(prev => prev.map(event =>
+        event.id === id
           ? { ...event, ...data }
           : event
       ));
-      
+
       return { success: true, data };
     } catch (err) {
       console.error('Error updating event:', err);
-      return { 
-        success: false, 
-        error: err instanceof Error ? err.message : 'Failed to update event' 
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to update event'
       };
     }
   };
@@ -238,9 +238,9 @@ const Events: React.FC = () => {
       return { success: true };
     } catch (err) {
       console.error('Error deleting event:', err);
-      return { 
-        success: false, 
-        error: err instanceof Error ? err.message : 'Failed to delete event' 
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to delete event'
       };
     }
   };
@@ -387,8 +387,8 @@ const Events: React.FC = () => {
       <div className="space-y-6">
         <div className="flex justify-center items-center h-64">
           <div className="text-red-500">{t("admin.events.error")}: {error}</div>
-          <Button 
-            onClick={fetchEvents} 
+          <Button
+            onClick={fetchEvents}
             className="ml-4"
             variant="outline"
           >
@@ -408,8 +408,8 @@ const Events: React.FC = () => {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">{t("admin.events.title")}</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {t("admin.events.events_count", { 
-              filtered: filteredEvents.length, 
+            {t("admin.events.events_count", {
+              filtered: filteredEvents.length,
               total: totalCount,
               type: searchTerm ? t("admin.events.filtered") : t("admin.events.total")
             })}
@@ -444,7 +444,7 @@ const Events: React.FC = () => {
           data={paginatedEvents}
           keyExtractor={(event) => event.id}
         />
-        
+
         {/* Updated pagination controls */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between p-4 border-t">

@@ -4,7 +4,7 @@ import { ArrowLeft, Calendar, MapPin, Clock, Users, DollarSign, Edit, Trash2 } f
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { supabase } from '../../supabase-client';
+import { supabase } from '../../lib/supabase-client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { RealtimeChannel } from '@supabase/supabase-js';
@@ -161,7 +161,7 @@ const EventDetails: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Optimize the query to only fetch needed fields
       const { data, error } = await supabase
         .from('event')

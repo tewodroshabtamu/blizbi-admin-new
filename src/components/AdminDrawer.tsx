@@ -1,6 +1,6 @@
 import { Building, Calendar1, HomeIcon, LogOut, Settings, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useClerk } from "@clerk/clerk-react";
+import { useAuth } from "../contexts/AuthContext";
 
 interface AdminDrawerProps {
   isOpen: boolean;
@@ -8,12 +8,12 @@ interface AdminDrawerProps {
 }
 
 const AdminDrawer = ({ isOpen, onClose }: AdminDrawerProps) => {
-  const { signOut } = useClerk();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await signOut();
-    navigate("/explore");
+    await logout();
+    navigate("/login");
   };
 
   const handleNavigation = () => {
@@ -46,15 +46,13 @@ const AdminDrawer = ({ isOpen, onClose }: AdminDrawerProps) => {
   return (
     <>
       <div
-        className={`fixed inset-0 bg-black transition-opacity duration-300 ease-in-out z-[9998] ${
-          isOpen ? "opacity-50" : "opacity-0 pointer-events-none"
-        }`}
+        className={`fixed inset-0 bg-black transition-opacity duration-300 ease-in-out z-[9998] ${isOpen ? "opacity-50" : "opacity-0 pointer-events-none"
+          }`}
         onClick={onClose}
       />
       <div
-        className={`fixed top-0 left-0 h-full w-[20rem] bg-blizbi-teal shadow-lg z-[9999] transform transition-transform duration-300 ease-in-out sm:pb-0 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed top-0 left-0 h-full w-[20rem] bg-blizbi-teal shadow-lg z-[9999] transform transition-transform duration-300 ease-in-out sm:pb-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex flex-col justify-between h-full">
           <div>

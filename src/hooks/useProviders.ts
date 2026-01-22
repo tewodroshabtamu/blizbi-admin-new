@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../supabase-client";
+import { supabase } from "../lib/supabase-client";
 import { Database } from "../types/supabase";
 
 type Provider = Database['public']['Tables']['providers']['Row'];
@@ -13,7 +13,7 @@ export const useProviders = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const { data: providersData, error: fetchError } = await supabase
         .from('providers')
         .select('*')

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { supabase } from "../supabase-client";
+import { supabase } from "../lib/supabase-client";
 import { Database } from "../types/supabase";
 import { EventFormData } from "./useEventForm";
 
@@ -18,11 +18,11 @@ export const useEventSubmission = () => {
     editId?: string
   ) => {
     setIsSubmitting(true);
-    
+
     try {
       // Find the provider ID from the selected provider name
       const selectedProvider = providers.find(p => p.name === formData.provider);
-      
+
       if (!selectedProvider) {
         toast.error('Please select a valid provider');
         return;
@@ -55,14 +55,14 @@ export const useEventSubmission = () => {
         // Update existing event
         const { error } = await supabase
           .from('event')
-          .update({ 
-            ...eventData, 
-            updated_at: new Date().toISOString() 
+          .update({
+            ...eventData,
+            updated_at: new Date().toISOString()
           })
           .eq('id', editId);
-          
+
         if (error) throw error;
-        
+
         toast.success('Event updated successfully!');
       } else {
         // Create new event
@@ -70,15 +70,15 @@ export const useEventSubmission = () => {
           .from('event')
           .insert([eventData])
           .select();
-          
+
         if (error) throw error;
-        
+
         toast.success('Event created successfully!');
       }
-      
+
       // Trigger a refresh of providers data if needed
       window.dispatchEvent(new CustomEvent('refreshProviders'));
-      
+
       navigate('/admin/events');
     } catch (error: any) {
       console.error('Error saving event:', error);

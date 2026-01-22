@@ -13,7 +13,7 @@ import {
 import Table from "../../components/Table";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { supabase } from "../../supabase-client";
+import { supabase } from "../../lib/supabase-client";
 import { Database } from "../../types/supabase";
 import { useTranslation } from "react-i18next";
 

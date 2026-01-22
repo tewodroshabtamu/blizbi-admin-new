@@ -2,12 +2,12 @@ import { Building, Calendar1, HomeIcon, LogOut, Settings } from "lucide-react";
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { BlizbiIcon } from "./BlizbiIcon";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 
 const AdminSidebar = () => {
   const { t } = useTranslation();
-  const { signOut } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const adminSidebarItems = [
@@ -34,8 +34,8 @@ const AdminSidebar = () => {
   ];
 
   const handleLogout = async () => {
-    await signOut();
-    navigate("/explore");
+    await logout();
+    navigate("/login");
   };
 
   return (
@@ -79,11 +79,10 @@ const AdminSidebarItem = ({ item }: { item: AdminSidebarItem }) => {
     <div className="px-4">
       <Link
         to={item.path}
-        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${
-          isActive
-            ? "bg-blizbi-teal/10 text-blizbi-teal"
-            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-        }`}
+        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${isActive
+          ? "bg-blizbi-teal/10 text-blizbi-teal"
+          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+          }`}
       >
         {item.icon}
         <span className="font-medium text-sm">{item.label}</span>
