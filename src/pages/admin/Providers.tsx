@@ -10,25 +10,27 @@ import {
   Globe,
   Calendar,
 } from "lucide-react";
-import Table from "../../components/Table";
+import { DataTable } from "../../components/ui/DataTable";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { getProviders, deleteProvider as deleteProviderService, ProviderData } from "../../services/providers";
 import { searchEvents } from "../../services/events";
+import { DeleteConfirmationModal } from "../../components/ui/DeleteConfirmationModal";
 
-type Provider = ProviderData & {
-  eventsCount?: number;
-  website_url?: string;
-};
+import { AdminProvider } from '../../types/admin';
 
 const Providers: React.FC = () => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEventRange, setSelectedEventRange] = useState("all");
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [providers, setProviders] = useState<AdminProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [providerToDelete, setProviderToDelete] = useState<string | number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
 
   // Fetch providers from API
@@ -62,10 +64,8 @@ const Providers: React.FC = () => {
         const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
         return aDate - bDate;
       });
-      console.log('Setting providers:', sortedProviders);
       setProviders(sortedProviders);
     } catch (err: any) {
-      console.error("Error fetching providers:", err);
       setError(
         err?.message || "Failed to fetch providers"
       );
@@ -95,7 +95,6 @@ const Providers: React.FC = () => {
       setProviders((prev) => prev.filter((provider) => provider.id !== id));
       return { success: true };
     } catch (err: any) {
-      console.error("Error deleting provider:", err);
       return {
         success: false,
         error: err?.message || t("admin.providers.failed_to_delete"),
@@ -140,12 +139,23 @@ const Providers: React.FC = () => {
     return matchesSearch && matchesEventRange;
   });
 
-  const handleDelete = async (providerId: string | number) => {
-    if (window.confirm(t("admin.providers.delete_confirmation"))) {
-      const result = await deleteProvider(providerId);
-      if (!result.success) {
-        alert(result.error || t("admin.providers.failed_to_delete"));
-      }
+  const handleDeleteClick = (providerId: string | number) => {
+    setProviderToDelete(providerId);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!providerToDelete) return;
+    
+    setIsDeleting(true);
+    const result = await deleteProvider(providerToDelete);
+    setIsDeleting(false);
+    
+    if (result.success) {
+      setDeleteModalOpen(false);
+      setProviderToDelete(null);
+    } else {
+      toast.error(result.error || t("admin.providers.failed_to_delete"));
     }
   };
 
@@ -232,7 +242,7 @@ const Providers: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDelete(provider.id)}
+            onClick={() => handleDeleteClick(provider.id.toString())}
             className="text-red-600 hover:text-red-700"
           >
             <Trash2 className="w-4 h-4" />
@@ -307,10 +317,28 @@ const Providers: React.FC = () => {
         </Link>
       </div>
       <Card>
-        <Table
+        <DataTable
           columns={columns}
           data={filteredProviders}
           keyExtractor={(provider) => provider.id.toString()}
+          emptyMessage={t("admin.providers.no_providers")}
+        />
+
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          open={deleteModalOpen}
+          onOpenChange={setDeleteModalOpen}
+          onConfirm={handleDeleteConfirm}
+          title={(() => {
+            const translated = t("admin.providers.delete_confirmation_title");
+            return translated !== "admin.providers.delete_confirmation_title" ? translated : "Delete Provider";
+          })()}
+          description={(() => {
+            const translated = t("admin.providers.delete_confirmation_message");
+            return translated !== "admin.providers.delete_confirmation_message" ? translated : "Are you sure you want to delete this provider? This action cannot be undone.";
+          })()}
+          itemName={providerToDelete ? providers.find(p => p.id === providerToDelete)?.name : undefined}
+          isLoading={isDeleting}
         />
       </Card>
     </div>

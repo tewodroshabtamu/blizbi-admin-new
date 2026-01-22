@@ -60,7 +60,6 @@ const NewEvent: React.FC = () => {
         const locationsData = await getLocations();
         setLocations(Array.isArray(locationsData) ? locationsData : []);
       } catch (err: any) {
-        console.error('Error fetching locations:', err);
         const errorMessage = err?.message || 'Failed to load locations';
         toast.error(errorMessage);
         setLocations([]);
@@ -85,7 +84,6 @@ const NewEvent: React.FC = () => {
         setImagePreview(data.image_url);
       }
     } catch (err: any) {
-      console.error('Error loading event data:', err);
       const errorMessage = err?.message || t("admin.new_event.failed_to_load");
       setError(errorMessage);
       toast.error(errorMessage);
@@ -168,7 +166,6 @@ const NewEvent: React.FC = () => {
       await submitEvent(updatedFormData, providers, isEditMode, editId || undefined);
 
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
       toast.error(t("admin.new_event.failed_to_upload_image"));
     }
   };

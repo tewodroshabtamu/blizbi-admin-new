@@ -267,7 +267,6 @@ const NewProvider: React.FC = () => {
         // Ensure locationsData is always an array
         setLocations(Array.isArray(locationsData) ? locationsData : []);
       } catch (err: any) {
-        console.error('Error fetching locations:', err);
         const errorMessage = err?.message || 'Failed to load locations';
         toast.error(errorMessage);
         // Set error state so user knows locations couldn't be loaded
@@ -312,7 +311,6 @@ const NewProvider: React.FC = () => {
         is_featured: data.is_featured || false,
       });
     } catch (err: any) {
-      console.error("Error loading provider data:", err);
       const errorMessage = err?.message || t("admin.new_provider.failed_to_load");
       setError(errorMessage);
       toast.error(errorMessage);
@@ -405,7 +403,6 @@ const NewProvider: React.FC = () => {
 
       navigate(returnPath);
     } catch (error: any) {
-      console.error('Provider save error:', error);
       // Extract error message from various error formats
       let errorMessage = 'Unknown error';
       if (error?.message) {

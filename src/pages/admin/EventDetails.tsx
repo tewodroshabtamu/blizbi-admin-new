@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Clock, Users, DollarSign, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Users, DollarSign, Edit, Trash2 } from 'lucide-react';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { getEventById, deleteEvent as deleteEventService, EventData } from '../../services/events';
+import { getEventById, deleteEvent as deleteEventService } from '../../services/events';
+import { DeleteConfirmationModal } from '../../components/ui/DeleteConfirmationModal';
 
 interface EventDetails {
   id: string;
@@ -35,27 +36,6 @@ interface EventDetails {
     id: string;
     name: string;
   };
-}
-
-interface Provider {
-  id: string;
-  name: string;
-}
-
-interface EventData {
-  id: string;
-  title: string;
-  provider_id: string;
-  event_type: 'event' | 'recurrent';
-  start_date: string;
-  end_date: string | null;
-  start_time: string;
-  end_time: string | null;
-  cover_url: string | null;
-  created_at: string;
-  updated_at: string;
-  details: EventDetails['details'];
-  providers: Provider;
 }
 
 const EventDetails: React.FC = () => {
@@ -113,7 +93,6 @@ const EventDetails: React.FC = () => {
 
       setEvent(transformedData);
     } catch (err: any) {
-      console.error('Error fetching event details:', err);
       const errorMessage = err?.message || t('admin.event_details.failed_to_fetch');
       setError(errorMessage);
       toast.error(errorMessage);
@@ -122,16 +101,24 @@ const EventDetails: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!event || !window.confirm(t('admin.event_details.delete_confirmation'))) return;
+  const handleDeleteClick = () => {
+    if (!event) return;
+    setDeleteModalOpen(true);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!event) return;
+
+    setIsDeleting(true);
     try {
       await deleteEventService(event.id);
       toast.success(t('admin.event_details.event_deleted'));
       navigate('/admin/events');
     } catch (err: any) {
-      console.error('Error deleting event:', err);
       toast.error(err?.message || t('admin.event_details.failed_to_delete'));
+    } finally {
+      setIsDeleting(false);
+      setDeleteModalOpen(false);
     }
   };
 
@@ -216,7 +203,7 @@ const EventDetails: React.FC = () => {
           </Button>
           <Button
             variant="outline"
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             className="flex items-center gap-2 text-red-600 hover:text-red-700"
           >
             <Trash2 className="w-4 h-4" />
@@ -338,6 +325,23 @@ const EventDetails: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onConfirm={handleDeleteConfirm}
+        title={(() => {
+          const translated = t('admin.event_details.delete_confirmation_title');
+          return translated !== 'admin.event_details.delete_confirmation_title' ? translated : 'Delete Event';
+        })()}
+        description={(() => {
+          const translated = t('admin.event_details.delete_confirmation_message');
+          return translated !== 'admin.event_details.delete_confirmation_message' ? translated : 'Are you sure you want to delete this event? This action cannot be undone.';
+        })()}
+        itemName={event?.title}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

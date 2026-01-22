@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getProviderById, deleteProvider as deleteProviderService, ProviderData } from '../../services/providers';
+import { DeleteConfirmationModal } from '../../components/ui/DeleteConfirmationModal';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
@@ -20,6 +21,8 @@ const ProviderDetails: React.FC = () => {
   const [provider, setProvider] = useState<ProviderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -34,24 +37,30 @@ const ProviderDetails: React.FC = () => {
       const data = await getProviderById(id);
       setProvider(data as ProviderDetails);
     } catch (err: any) {
-      console.error('Error fetching provider details:', err);
       setError(err?.message || t('admin.provider_details.failed_to_fetch'));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
     if (!provider) return;
-    if (window.confirm(t('admin.provider_details.delete_confirmation'))) {
-      try {
-        await deleteProviderService(provider.id);
-        toast.success(t('admin.provider_details.provider_deleted'));
-        navigate('/admin/providers');
-      } catch (err: any) {
-        console.error('Error deleting provider:', err);
-        toast.error(err?.message || t('admin.provider_details.failed_to_delete'));
-      }
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!provider) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteProviderService(provider.id);
+      toast.success(t('admin.provider_details.provider_deleted'));
+      navigate('/admin/providers');
+    } catch (err: any) {
+      toast.error(err?.message || t('admin.provider_details.failed_to_delete'));
+    } finally {
+      setIsDeleting(false);
+      setDeleteModalOpen(false);
     }
   };
 
@@ -99,7 +108,7 @@ const ProviderDetails: React.FC = () => {
           </Button>
           <Button
             variant="outline"
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             className="flex items-center gap-2 text-red-600 hover:text-red-700"
           >
             <Trash2 className="w-4 h-4" />
@@ -145,6 +154,23 @@ const ProviderDetails: React.FC = () => {
           )}
         </div>
       </Card>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        open={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onConfirm={handleDeleteConfirm}
+        title={(() => {
+          const translated = t('admin.provider_details.delete_confirmation_title');
+          return translated !== 'admin.provider_details.delete_confirmation_title' ? translated : 'Delete Provider';
+        })()}
+        description={(() => {
+          const translated = t('admin.provider_details.delete_confirmation_message');
+          return translated !== 'admin.provider_details.delete_confirmation_message' ? translated : 'Are you sure you want to delete this provider? This action cannot be undone.';
+        })()}
+        itemName={provider?.name}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Edit, Eye, Plus, Trash2, Search, Users } from "lucide-react";
-import Table from "../../components/Table";
+import { DataTable } from "../../components/ui/DataTable";
 import { Card } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -9,33 +9,22 @@ import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import Pagination from "../../components/ui/Pagination";
 import { searchEvents, createEvent as createEventService, updateEvent as updateEventService, deleteEvent as deleteEventService, EventData } from "../../services/events";
-
-type Event = {
-  id: number | string;
-  title: string;
-  event_type?: string;
-  start_date: string;
-  end_date: string | null;
-  created_at: string;
-  provider_name?: string;
-  provider?: {
-    id: number;
-    name: string;
-  };
-  views?: number;
-  participants?: number;
-};
+import { AdminEvent } from '../../types/admin';
+import { DeleteConfirmationModal } from "../../components/ui/DeleteConfirmationModal";
 
 const Events: React.FC = () => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("all");
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<AdminEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const ITEMS_PER_PAGE = 10;
 
   // Fetch events from API
@@ -48,7 +37,7 @@ const Events: React.FC = () => {
       // Using a large page_size to get all events for filtering
       const result = await searchEvents({ page_size: 1000 });
 
-      const transformedEvents: Event[] = result.events.map(event => ({
+      const transformedEvents: AdminEvent[] = result.events.map(event => ({
         ...event,
         id: event.id.toString(),
         // Backend returns provider as a number, not an object
@@ -60,11 +49,9 @@ const Events: React.FC = () => {
         participants: 0, // TODO: Add participants from analytics when available
       }));
 
-      console.log('Setting events:', transformedEvents);
       setEvents(transformedEvents);
       setTotalCount(result.totalCount);
     } catch (err: any) {
-      console.error('Error fetching events:', err);
       setError(err?.message || 'Failed to fetch events');
     } finally {
       setLoading(false);
@@ -107,7 +94,7 @@ const Events: React.FC = () => {
       const data = await createEventService(eventData);
 
       // Add to local state with mock metrics
-      const newEvent: Event = {
+      const newEvent: AdminEvent = {
         ...data,
         id: data.id.toString(),
         provider_name: data.provider?.name || t('admin.events.unknown_provider'),
@@ -118,7 +105,6 @@ const Events: React.FC = () => {
       setTotalCount(prev => prev + 1);
       return { success: true, data };
     } catch (err: any) {
-      console.error('Error creating event:', err);
       return {
         success: false,
         error: err?.message || 'Failed to create event'
@@ -140,7 +126,6 @@ const Events: React.FC = () => {
 
       return { success: true, data };
     } catch (err: any) {
-      console.error('Error updating event:', err);
       return {
         success: false,
         error: err?.message || 'Failed to update event'
@@ -158,7 +143,6 @@ const Events: React.FC = () => {
       setTotalCount(prev => prev - 1);
       return { success: true };
     } catch (err: any) {
-      console.error('Error deleting event:', err);
       return {
         success: false,
         error: err?.message || 'Failed to delete event'
@@ -166,14 +150,24 @@ const Events: React.FC = () => {
     }
   };
 
-  const handleDelete = async (eventId: string) => {
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      const result = await deleteEvent(eventId);
-      if (result.success) {
-        toast.success('Event deleted successfully');
-      } else {
-        toast.error(result.error || 'Failed to delete event');
-      }
+  const handleDeleteClick = (eventId: string) => {
+    setEventToDelete(eventId);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!eventToDelete) return;
+    
+    setIsDeleting(true);
+    const result = await deleteEvent(eventToDelete);
+    setIsDeleting(false);
+    
+    if (result.success) {
+      toast.success('Event deleted successfully');
+      setDeleteModalOpen(false);
+      setEventToDelete(null);
+    } else {
+      toast.error(result.error || 'Failed to delete event');
     }
   };
 
@@ -185,7 +179,7 @@ const Events: React.FC = () => {
     navigate(`/admin/events/${eventId}`);
   };
 
-  const getEventStatus = (eventType: string) => {
+  const getEventStatus = (eventType: string): { label: string; color: string } => {
     // Since we don't have a status field in the schema, we'll use event_type
     switch (eventType) {
       case 'event':
@@ -283,7 +277,7 @@ const Events: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDelete(event.id)}
+            onClick={() => handleDeleteClick(event.id)}
             className="text-red-600 hover:text-red-700 p-1 sm:p-2"
           >
             <Trash2 className="w-4 h-4" />
@@ -360,10 +354,11 @@ const Events: React.FC = () => {
       </div>
 
       <Card>
-        <Table
+        <DataTable
           columns={columns}
           data={paginatedEvents}
           keyExtractor={(event) => event.id}
+          emptyMessage={t("admin.events.no_events")}
         />
 
         {/* Updated pagination controls */}
@@ -382,6 +377,22 @@ const Events: React.FC = () => {
             />
           </div>
         )}
+
+        {/* Delete Confirmation Modal */}
+        <DeleteConfirmationModal
+          open={deleteModalOpen}
+          onOpenChange={setDeleteModalOpen}
+          onConfirm={handleDeleteConfirm}
+          title={(() => {
+            const translated = t("admin.events.delete_confirmation_title");
+            return translated !== "admin.events.delete_confirmation_title" ? translated : "Delete Event";
+          })()}
+          description={(() => {
+            const translated = t("admin.events.delete_confirmation_message");
+            return translated !== "admin.events.delete_confirmation_message" ? translated : "Are you sure you want to delete this event? This action cannot be undone.";
+          })()}
+          isLoading={isDeleting}
+        />
       </Card>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 
-interface Column<T> {
+export interface Column<T> {
   header: string;
   accessor: keyof T | ((item: T) => ReactNode);
   align?: 'left' | 'center' | 'right';
@@ -13,14 +13,33 @@ interface Column<T> {
   };
 }
 
-interface TableProps<T> {
+export interface DataTableProps<T> {
   columns: Column<T>[];
   data: T[];
   keyExtractor: (item: T) => string | number;
   responsive?: boolean;
+  emptyMessage?: string;
 }
 
-function Table<T>({ columns, data, keyExtractor, responsive = true }: TableProps<T>) {
+/**
+ * Reusable data table component for displaying tabular data
+ * Used in Events and Providers pages
+ */
+export function DataTable<T>({ 
+  columns, 
+  data, 
+  keyExtractor, 
+  responsive = true,
+  emptyMessage = 'No data available'
+}: DataTableProps<T>) {
+  if (data.length === 0) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
+        <p className="text-gray-500">{emptyMessage}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
       <div className="overflow-x-auto">
@@ -49,7 +68,7 @@ function Table<T>({ columns, data, keyExtractor, responsive = true }: TableProps
                   >
                     {typeof column.accessor === 'function'
                       ? column.accessor(item)
-                      : String(item[column.accessor])}
+                      : String(item[column.accessor] ?? '')}
                   </td>
                 ))}
               </tr>
@@ -60,5 +79,3 @@ function Table<T>({ columns, data, keyExtractor, responsive = true }: TableProps
     </div>
   );
 }
-
-export default Table;

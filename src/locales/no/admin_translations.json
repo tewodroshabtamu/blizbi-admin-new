@@ -52,6 +52,8 @@
     "error": "Kunne ikke laste leverandører",
     "retry": "Prøv igjen",
     "delete_confirmation": "Er du sikker på at du vil slette denne leverandøren?",
+    "delete_confirmation_title": "Slett leverandør",
+    "delete_confirmation_message": "Er du sikker på at du vil slette denne leverandøren? Denne handlingen kan ikke angres.",
     "failed_to_delete": "Kunne ikke slette leverandør",
     "cannot_delete_with_events": "Kan ikke slette leverandør med eksisterende hendelser",
     "table": {
@@ -65,6 +67,8 @@
   "admin.provider_details": {
     "failed_to_fetch": "Kunne ikke hente leverandørdetaljer.",
     "delete_confirmation": "Er du sikker på at du vil slette denne leverandøren?",
+    "delete_confirmation_title": "Slett leverandør",
+    "delete_confirmation_message": "Er du sikker på at du vil slette denne leverandøren? Denne handlingen kan ikke angres.",
     "provider_deleted": "Leverandør slettet.",
     "failed_to_delete": "Kunne ikke slette leverandør.",
     "loading": "Laster leverandørdetaljer...",
@@ -87,6 +91,8 @@
     "event_not_found": "Hendelse ikke funnet.",
     "failed_to_fetch": "Kunne ikke hente hendelsesdetaljer.",
     "delete_confirmation": "Er du sikker på at du vil slette denne hendelsen?",
+    "delete_confirmation_title": "Slett hendelse",
+    "delete_confirmation_message": "Er du sikker på at du vil slette denne hendelsen? Denne handlingen kan ikke angres.",
     "event_deleted": "Hendelse slettet.",
     "failed_to_delete": "Kunne ikke slette hendelse.",
     "not_available": "Ikke tilgjengelig",
@@ -225,7 +231,9 @@
       "recurring": "Gjentakende",
       "draft": "Utkast"
     },
-    "unknown_provider": "Ukjent leverandør"
+    "unknown_provider": "Ukjent leverandør",
+    "delete_confirmation_title": "Slett hendelse",
+    "delete_confirmation_message": "Er du sikker på at du vil slette denne hendelsen? Denne handlingen kan ikke angres."
   },
   "admin.settings": {
     "title": "Innstillinger for admin",
