@@ -13,6 +13,7 @@ const PUBLIC_ENDPOINTS = [
     '/feed/map/events/',
     '/feed/map/providers/',
     '/health/',
+    '/core/locations/',
 ];
 
 // Check if endpoint is public

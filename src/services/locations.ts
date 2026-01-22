@@ -13,25 +13,34 @@ export interface LocationData {
 
 /**
  * Get all locations
- * Note: This endpoint requires authentication
+ * Note: This endpoint is public (AllowAny permission)
  */
 export const getLocations = async (): Promise<LocationData[]> => {
   try {
-    // This endpoint requires authentication, so the API client will automatically
-    // add the Firebase token if the user is logged in
-    return await apiClient.get<LocationData[]>('/core/locations/');
+    const response = await apiClient.get<LocationData[] | { results: LocationData[] }>('/core/locations/');
+    console.log('Locations API response:', response);
+
+    // Handle both direct array and paginated response
+    if (Array.isArray(response)) {
+      return response;
+    } else if (response && typeof response === 'object' && 'results' in response && Array.isArray(response.results)) {
+      return response.results;
+    } else {
+      console.warn('Locations API returned unexpected format:', response);
+      return [];
+    }
   } catch (error: any) {
     console.error('Error fetching locations:', error);
-    
+
     // Provide more helpful error messages
-    if (error?.status === 401) {
-      throw new Error('Authentication required. Please log in to access locations.');
-    } else if (error?.status === 403) {
-      throw new Error('You do not have permission to access locations.');
+    if (error?.status === 500) {
+      throw new Error('Server error occurred while fetching locations.');
+    } else if (error?.status === 404) {
+      throw new Error('Locations endpoint not found.');
     } else if (error?.message) {
       throw error;
     } else {
-      throw new Error('Failed to fetch locations. Please ensure you are authenticated.');
+      throw new Error('Failed to fetch locations. Please check your connection.');
     }
   }
 };

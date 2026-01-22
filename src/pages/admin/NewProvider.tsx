@@ -13,7 +13,6 @@ import { Button } from "../../components/ui/button";
 import { toast } from "sonner";
 import { getProviderById, createProvider, updateProvider, ProviderData } from "../../services/providers";
 import { getLocations, LocationData } from "../../services/locations";
-import { useAuth } from "../../contexts/AuthContext";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -191,7 +190,6 @@ const NewProvider: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -259,38 +257,32 @@ const NewProvider: React.FC = () => {
   });
 
   // Load locations for the dropdown
-  // Only fetch if user is authenticated (locations endpoint requires auth)
+  // Locations endpoint is public, so no authentication required
   useEffect(() => {
     const fetchLocations = async () => {
-      // Wait for auth to be ready
-      if (authLoading) return;
-      
-      // Only fetch if user is authenticated
-      if (!user) {
-        setError('Please log in to create a provider. Locations require authentication.');
-        return;
-      }
-      
       try {
         setLoadingLocations(true);
         setError(null);
         const locationsData = await getLocations();
-        setLocations(locationsData);
+        // Ensure locationsData is always an array
+        setLocations(Array.isArray(locationsData) ? locationsData : []);
       } catch (err: any) {
         console.error('Error fetching locations:', err);
         const errorMessage = err?.message || 'Failed to load locations';
         toast.error(errorMessage);
         // Set error state so user knows locations couldn't be loaded
         setError(errorMessage);
+        // Keep locations as empty array on error
+        setLocations([]);
       } finally {
         setLoadingLocations(false);
       }
     };
-    
+
     if (!isEditMode) {
       fetchLocations();
     }
-  }, [isEditMode, user, authLoading]);
+  }, [isEditMode]);
 
   // Load existing provider data if in edit mode
   useEffect(() => {
@@ -541,7 +533,7 @@ const NewProvider: React.FC = () => {
                             disabled={loadingLocations}
                           >
                             <option value="">{loadingLocations ? "Loading locations..." : "Select a location"}</option>
-                            {locations.map((loc) => (
+                            {Array.isArray(locations) && locations.map((loc) => (
                               <option key={loc.id} value={loc.id}>
                                 {loc.name} {loc.address ? `- ${loc.address}` : ""}
                               </option>
