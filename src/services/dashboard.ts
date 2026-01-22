@@ -1,4 +1,6 @@
-import { supabase } from "@/lib/supabase-client";
+import { apiClient } from '../lib/api-client';
+import { EventData } from './events';
+import { ProviderData } from './providers';
 
 export interface DashboardStats {
   totalUsers: number;
@@ -11,12 +13,12 @@ export interface DashboardStats {
 }
 
 export interface ProviderMetrics {
-  id: string;
+  id: number;
   name: string;
   totalEvents: number;
   activeEvents: number;
   recentEvents: Array<{
-    id: string;
+    id: number;
     title: string;
     start_date: string;
     category?: string;
@@ -24,44 +26,38 @@ export interface ProviderMetrics {
 }
 
 export interface RecentEvent {
-  id: string;
+  id: number;
   title: string;
   provider_name: string;
   start_date: string;
   category?: string;
 }
 
-// Get dashboard overview statistics
+/**
+ * Get dashboard overview statistics
+ * Note: This aggregates data from multiple endpoints
+ */
 export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
-    // Get total counts in parallel
-    const [usersResult, eventsResult, providersResult] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('event').select('*', { count: 'exact', head: true }),
-      supabase.from('providers').select('*', { count: 'exact', head: true })
+    // Fetch events and providers in parallel
+    const [eventsResponse, providersResponse] = await Promise.all([
+      apiClient.get<{ pagination: { total: number } }>('/events/', { page_size: 1 }),
+      apiClient.get<{ pagination: { total: number } }>('/providers/', { page_size: 1 }),
     ]);
 
-    const totalUsers = usersResult.count || 0;
-    const totalEvents = eventsResult.count || 0;
-    const totalProviders = providersResult.count || 0;
+    const totalEvents = eventsResponse.pagination?.total || 0;
+    const totalProviders = providersResponse.pagination?.total || 0;
 
-    // Get event metrics for monthly views (if available)
-    const { data: metricsData } = await supabase
-      .from('event_metrics')
-      .select('views')
-      .gte('created_at', new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString());
-
-    const monthlyViews = metricsData?.reduce((sum, metric) => sum + (metric.views || 0), 0) || 0;
-
+    // TODO: Get actual user count and monthly views from backend
+    // For now, using placeholder values
     return {
-      totalUsers,
+      totalUsers: 0, // TODO: Add user count endpoint
       totalEvents,
       totalProviders,
-      monthlyViews,
-      // For now, we'll calculate changes later when we have historical data
-      userChange: "+12.5%",
-      eventChange: "+8.2%",
-      viewChange: "-2.4%"
+      monthlyViews: 0, // TODO: Add analytics endpoint
+      userChange: '+12.5%',
+      eventChange: '+8.2%',
+      viewChange: '-2.4%',
     };
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
@@ -69,55 +65,60 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
   }
 };
 
-// Get provider metrics
+/**
+ * Get provider metrics
+ */
 export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
   try {
     // Get all providers
-    const { data: providers, error: providersError } = await supabase
-      .from('providers')
-      .select('id, name')
-      .order('created_at', { ascending: false });
+    const providersResponse = await apiClient.get<{ data: ProviderData[] }>('/providers/', {
+      page_size: 50,
+    });
 
-    if (providersError) throw providersError;
+    const providers = providersResponse.data || [];
 
-    if (!providers) return [];
-
-    // Get metrics for each provider
+    // For each provider, get their events
     const providerMetrics = await Promise.all(
       providers.map(async (provider) => {
-        // Get total events for this provider
-        const { count: totalEvents } = await supabase
-          .from('event')
-          .select('*', { count: 'exact', head: true })
-          .eq('provider_id', provider.id);
+        try {
+          // Get events for this provider
+          const eventsResponse = await apiClient.get<{ data: EventData[]; pagination: { total: number } }>(
+            '/events/',
+            {
+              provider_id: provider.id,
+              page_size: 3,
+            }
+          );
 
-        // Get active events (future events)
-        const { count: activeEvents } = await supabase
-          .from('event')
-          .select('*', { count: 'exact', head: true })
-          .eq('provider_id', provider.id)
-          .gte('start_date', new Date().toISOString().split('T')[0]);
+          const allEvents = eventsResponse.data || [];
+          const totalEvents = eventsResponse.pagination?.total || 0;
 
-        // Get recent events
-        const { data: recentEvents } = await supabase
-          .from('event')
-          .select('id, title, start_date, details')
-          .eq('provider_id', provider.id)
-          .order('created_at', { ascending: false })
-          .limit(3);
+          // Count active events (future events)
+          const now = new Date().toISOString();
+          const activeEvents = allEvents.filter((e) => e.start_date >= now).length;
 
-        return {
-          id: provider.id,
-          name: provider.name,
-          totalEvents: totalEvents || 0,
-          activeEvents: activeEvents || 0,
-          recentEvents: (recentEvents || []).map(event => ({
-            id: event.id,
-            title: event.title,
-            start_date: event.start_date,
-            category: event.details?.category
-          }))
-        };
+          return {
+            id: provider.id,
+            name: provider.name,
+            totalEvents,
+            activeEvents,
+            recentEvents: allEvents.slice(0, 3).map((event) => ({
+              id: event.id,
+              title: event.title,
+              start_date: event.start_date,
+              category: undefined, // TODO: Add category support
+            })),
+          };
+        } catch (error) {
+          console.error(`Error fetching events for provider ${provider.id}:`, error);
+          return {
+            id: provider.id,
+            name: provider.name,
+            totalEvents: 0,
+            activeEvents: 0,
+            recentEvents: [],
+          };
+        }
       })
     );
 
@@ -128,34 +129,27 @@ export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
   }
 };
 
-// Get recent events across all providers
+/**
+ * Get recent events across all providers
+ */
 export const getRecentEvents = async (limit: number = 10): Promise<RecentEvent[]> => {
   try {
-    const { data, error } = await supabase
-      .from('event')
-      .select(`
-        id,
-        title,
-        start_date,
-        details,
-        providers!provider_id (
-          name
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+    const response = await apiClient.get<{ data: EventData[] }>('/events/', {
+      page_size: limit,
+      ordering: '-created_at', // Most recent first
+    });
 
-    if (error) throw error;
+    const events = response.data || [];
 
-    return (data || []).map(event => ({
+    return events.map((event) => ({
       id: event.id,
       title: event.title,
       start_date: event.start_date,
-      provider_name: Array.isArray(event.providers) ? event.providers[0]?.name : event.providers?.name || 'Unknown',
-      category: event.details?.category
+      provider_name: event.provider?.name || 'Unknown',
+      category: undefined, // TODO: Add category support
     }));
   } catch (error) {
     console.error('Error fetching recent events:', error);
     throw error;
   }
-}; 
+};
