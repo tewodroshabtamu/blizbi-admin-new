@@ -3,21 +3,32 @@ import { PaginatedResponse } from '../types/api';
 
 export interface EventData {
   id: number;
+  type: string;
   title: string;
   description: string;
-  start_date: string;
-  end_date: string | null;
+  language?: string;
+  start_date?: string;
+  end_date?: string | null;
   start_time?: string | null;
   end_time?: string | null;
-  image_url?: string | null;
+  cover_url?: string | null;
+  is_free?: boolean;
+  price?: string | null;
+  provider: number; // Backend returns number
+  provider_id: number; // Duplicate field from backend
+  location: number; // Backend returns number
   location_id?: number;
-  provider_id: number;
-  provider?: {
-    id: number;
-    name: string;
-  };
+  currency?: number;
+  details?: any;
   created_at?: string;
   updated_at?: string;
+  // Recurring event fields
+  recurring_type?: string | null;
+  recurring_days?: any[];
+  recurring_start_date?: string | null;
+  recurring_end_date?: string | null;
+  recurring_start_time?: string | null;
+  recurring_end_time?: string | null;
 }
 
 export interface SearchFilters {
@@ -66,7 +77,7 @@ export const searchEvents = async (
     const response = await apiClient.get<PaginatedResponse<EventData>>('/events/', params);
 
     return {
-      events: response.results || [],
+      events: response.data || [],
       totalCount: response.pagination.total,
       hasMore: response.pagination.next !== null && response.pagination.next !== undefined,
       page: response.pagination.page,
@@ -138,7 +149,7 @@ export const getPopularEvents = async (limit: number = 8): Promise<EventData[]> 
       page_size: limit,
       ordering: '-created_at', // Most recent first
     });
-    return response.results || [];
+    return response.data || [];
   } catch (error) {
     console.error('Error fetching popular events:', error);
     throw error;

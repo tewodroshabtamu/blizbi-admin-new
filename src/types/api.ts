@@ -1,6 +1,6 @@
 // API Response Types
 export interface PaginatedResponse<T> {
-    results: T[];  // Backend uses 'results' according to API documentation
+    data: T[];  // Backend uses 'data' according to actual API responses
     pagination: {
         total: number;
         count: number;

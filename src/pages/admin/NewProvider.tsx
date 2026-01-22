@@ -347,20 +347,25 @@ const NewProvider: React.FC = () => {
         cover_url = await uploadImage(file);
       }
 
+      // Prepare submit data, only include cover_url if it's not a data URL
       const submitData = {
         ...data,
-        cover_url,
+        ...(cover_url && !cover_url.startsWith('data:') ? { cover_url } : {}),
       };
       delete submitData.image;
 
       if (isEditMode && editId) {
         // Update existing provider
-        await updateProvider(editId, {
+        const updateData: any = {
           name: submitData.name,
           description: submitData.description,
           website: submitData.website_url,
-          logo_url: submitData.cover_url,
-        });
+        };
+        // Only include logo_url if we have a valid cover_url
+        if (submitData.cover_url) {
+          updateData.logo_url = submitData.cover_url;
+        }
+        await updateProvider(editId, updateData);
 
         toast.success(t("admin.new_provider.provider_updated"));
       } else {

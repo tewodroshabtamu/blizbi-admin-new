@@ -14,6 +14,7 @@ import { LocationSection } from "../../components/event-form/LocationSection";
 import { EventDetailsSection } from "../../components/event-form/EventDetailsSection";
 import { useTranslation } from "react-i18next";
 import { getEventById } from "../../services/events";
+import { getLocations, LocationData } from "../../services/locations";
 
 const NewEvent: React.FC = () => {
   const { t } = useTranslation();
@@ -21,6 +22,8 @@ const NewEvent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [locations, setLocations] = useState<LocationData[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(false);
 
   // Custom hooks
   const eventForm = useEventForm();
@@ -38,6 +41,36 @@ const NewEvent: React.FC = () => {
       loadEventData(editId);
     }
   }, [isEditMode, editId]);
+
+  // Update provider field when providers are loaded and we're in edit mode
+  useEffect(() => {
+    if (isEditMode && providers.length > 0 && eventForm.formData.provider_id) {
+      const provider = providers.find(p => p.id === eventForm.formData.provider_id);
+      if (provider && !eventForm.formData.provider) {
+        eventForm.handleInputChange("provider", provider.name);
+      }
+    }
+  }, [isEditMode, providers, eventForm]);
+
+  // Load locations for the dropdown
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        setLoadingLocations(true);
+        const locationsData = await getLocations();
+        setLocations(Array.isArray(locationsData) ? locationsData : []);
+      } catch (err: any) {
+        console.error('Error fetching locations:', err);
+        const errorMessage = err?.message || 'Failed to load locations';
+        toast.error(errorMessage);
+        setLocations([]);
+      } finally {
+        setLoadingLocations(false);
+      }
+    };
+
+    fetchLocations();
+  }, []);
 
   const loadEventData = async (eventId: string) => {
     try {
@@ -106,19 +139,30 @@ const NewEvent: React.FC = () => {
     const file = eventForm.formData.image;
 
     try {
+      // Require image upload for new events
+      if (!file && !eventForm.formData.imageUrl) {
+        toast.error("Please upload a cover image for the event");
+        return;
+      }
+
       // If there's a new image, upload it
       if (file) {
         coverImage = await uploadImage(file);
-      } else if (!isEditMode && !coverImage) {
-        // Require image for new events (like providers)
-        toast.error(t("admin.new_event.please_upload_image"));
-        return;
+      } else {
+        // Use existing image URL
+        coverImage = eventForm.formData.imageUrl;
+      }
+
+      // For data URLs (local preview), use a placeholder URL that backend accepts
+      // TODO: Implement proper backend image upload
+      if (coverImage && coverImage.startsWith('data:')) {
+        coverImage = 'https://via.placeholder.com/800x400?text=Event+Cover+Image';
       }
 
       // Update form data with the URL
       const updatedFormData = {
         ...eventForm.formData,
-        imageUrl: coverImage || '' // Use uploaded URL or empty string
+        imageUrl: coverImage
       };
 
       await submitEvent(updatedFormData, providers, isEditMode, editId || undefined);
@@ -200,6 +244,8 @@ const NewEvent: React.FC = () => {
               errors={eventForm.errors}
               providers={providers}
               loadingProviders={loadingProviders}
+              locations={locations}
+              loadingLocations={loadingLocations}
               onInputChange={eventForm.handleInputChange}
             />
 

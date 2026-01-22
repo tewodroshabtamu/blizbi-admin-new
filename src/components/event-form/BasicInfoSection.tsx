@@ -4,16 +4,19 @@ import { FormField } from "./FormField";
 import { FormInput, FormTextArea, FormSelect } from "./FormInput";
 import { EventFormData } from "../../hooks/useEventForm";
 import { ProviderData } from "../../services/providers";
+import { LocationData } from "../../services/locations";
 import { useTranslation } from "react-i18next";
 
 type Provider = ProviderData;
 
 interface BasicInfoSectionProps {
   formData: EventFormData;
-  errors: Partial<EventFormData>;
+  errors: Partial<Record<keyof EventFormData, string>>;
   providers: Provider[];
   loadingProviders: boolean;
-  onInputChange: (field: keyof EventFormData, value: string) => void;
+  locations: LocationData[];
+  loadingLocations: boolean;
+  onInputChange: (field: keyof EventFormData, value: string | number | undefined) => void;
 }
 
 export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
@@ -21,6 +24,8 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   errors,
   providers,
   loadingProviders,
+  locations,
+  loadingLocations,
   onInputChange,
 }) => {
   const { t } = useTranslation();
@@ -71,7 +76,7 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           />
         </FormField>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <FormField label={t("admin.new_event.provider")} required error={errors.provider}>
             <FormSelect
               value={formData.provider}
@@ -85,6 +90,24 @@ export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               {!loadingProviders && providers.map((provider) => (
                 <option key={provider.id} value={provider.name}>
                   {provider.name}
+                </option>
+              ))}
+            </FormSelect>
+          </FormField>
+
+          <FormField label="Location" required error={errors.location_id}>
+            <FormSelect
+              value={formData.location_id || ""}
+              onChange={(e) => onInputChange("location_id", e.target.value ? Number(e.target.value) : undefined)}
+              error={!!errors.location_id}
+              disabled={loadingLocations}
+            >
+              <option value="">
+                {loadingLocations ? "Loading locations..." : "Select location"}
+              </option>
+              {!loadingLocations && locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name} {location.address ? `- ${location.address}` : ""}
                 </option>
               ))}
             </FormSelect>

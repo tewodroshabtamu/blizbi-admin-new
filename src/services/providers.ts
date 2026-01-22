@@ -30,7 +30,7 @@ export const getProviders = async (page: number = 1, page_size: number = 25) => 
       page,
       page_size,
     });
-    return response.results || [];
+    return response.data || [];
   } catch (error) {
     console.error('Error fetching providers:', error);
     throw error;
@@ -144,7 +144,7 @@ export const getFeaturedProviders = async () => {
     const response = await apiClient.get<PaginatedResponse<ProviderData>>('/providers/', {
       page_size: 10,
     });
-    return (response.results || []).map((p) => ({
+    return (response.data || []).map((p) => ({
       id: p.id,
       imageUrl: p.logo_url,
       title: p.name,

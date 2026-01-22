@@ -23,6 +23,8 @@ export const getLocations = async (): Promise<LocationData[]> => {
     // Handle both direct array and paginated response
     if (Array.isArray(response)) {
       return response;
+    } else if (response && typeof response === 'object' && 'data' in response && Array.isArray(response.data)) {
+      return response.data;
     } else if (response && typeof response === 'object' && 'results' in response && Array.isArray(response.results)) {
       return response.results;
     } else {

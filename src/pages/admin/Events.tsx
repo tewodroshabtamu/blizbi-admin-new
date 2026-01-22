@@ -51,11 +51,16 @@ const Events: React.FC = () => {
       const transformedEvents: Event[] = result.events.map(event => ({
         ...event,
         id: event.id.toString(),
-        provider_name: event.provider?.name || t('admin.events.unknown_provider'),
+        // Backend returns provider as a number, not an object
+        // For now, we'll show the provider_id as name until we get provider details
+        provider_name: typeof event.provider === 'object' && event.provider?.name
+          ? event.provider.name
+          : `Provider ${event.provider_id || event.provider}`,
         views: 0, // TODO: Add views from analytics when available
         participants: 0, // TODO: Add participants from analytics when available
       }));
 
+      console.log('Setting events:', transformedEvents);
       setEvents(transformedEvents);
       setTotalCount(result.totalCount);
     } catch (err: any) {

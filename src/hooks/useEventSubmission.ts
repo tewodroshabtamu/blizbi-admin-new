@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { createEvent, updateEvent, EventData } from "../services/events";
+import { createEvent, updateEvent } from "../services/events";
 import { ProviderData } from "../services/providers";
 import { EventFormData } from "./useEventForm";
 
@@ -26,17 +26,39 @@ export const useEventSubmission = () => {
         return;
       }
 
-      // Prepare the event data according to the API schema
-      const eventData: Partial<EventData> = {
-        title: formData.name,
+      // Prepare the event data according to the backend API specification
+      // Required fields: type, title, description, provider_id, location_id
+      const eventData: any = {
+        type: 'one_time', // Default to one_time as per API docs
+        title: String(formData.name || ''), // Plain string
+        description: String(formData.description), // Plain string
         provider_id: selectedProvider.id,
-        description: formData.description,
-        start_date: formData.startDate,
-        end_date: formData.endDate || null,
-        image_url: formData.imageUrl || undefined,
-        // Note: API might have different field names - adjust based on actual API
-        // location_id, price_type, etc. may need to be mapped differently
+        location_id: formData.location_id,
+        // Optional fields
+        language: 'en',
+        start_date: formData.startDate ? `${formData.startDate}T${formData.startTime || '00:00'}:00Z` : null,
+        end_date: formData.endDate ? `${formData.endDate}T${formData.endTime || '23:59'}:00Z` : null,
+        start_time: formData.startTime,
+        end_time: formData.endTime,
+        // Only include cover_url if it has a valid value (omit if null/empty)
+        ...(formData.imageUrl && !formData.imageUrl.startsWith('data:') && formData.imageUrl.trim() !== ''
+          ? { cover_url: formData.imageUrl }
+          : {}),
+        is_free: formData.priceType === 'free',
+        price: formData.priceType === 'ticket_required' && formData.price ? parseFloat(formData.price) : null,
+        currency_id: formData.priceType === 'ticket_required' ? 1 : null, // TODO: Add currency selection
+        details: {
+          address: formData.address,
+          organizer: '', // TODO: Add organizer field
+          link: '', // TODO: Add link field
+          category: formData.category,
+          capacity: formData.capacity,
+          tags: formData.tags
+        }
       };
+
+      // Debug logging (optional - can be removed in production)
+      console.log('Event data being sent:', JSON.stringify(eventData, null, 2));
 
       if (isEditMode && editId) {
         // Update existing event

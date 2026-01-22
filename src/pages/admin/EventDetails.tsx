@@ -20,6 +20,8 @@ interface EventDetails {
   start_time: string;
   end_time: string | null;
   cover_url: string | null;
+  created_at: string;
+  updated_at: string;
   details: {
     description: string;
     location: string;
@@ -29,8 +31,6 @@ interface EventDetails {
     capacity: string;
     tags: string[];
   };
-  created_at: string;
-  updated_at: string;
   providers?: {
     id: string;
     name: string;
@@ -82,33 +82,33 @@ const EventDetails: React.FC = () => {
 
       const data = await getEventById(id);
 
-      // Transform the data to match EventDetails type
+      // Transform the data to match EventDetails type using backend response
       const transformedData: EventDetails = {
         id: data.id.toString(),
         title: data.title,
         provider_id: data.provider_id.toString(),
-        provider_name: data.provider?.name,
-        event_type: 'event' as const, // Default, adjust based on API response
+        provider_name: `Provider ${data.provider_id}`,
+        event_type: data.type === 'one_time' ? 'event' : 'recurrent',
         start_date: data.start_date,
         end_date: data.end_date || null,
-        start_time: '', // Extract from start_date if needed
-        end_time: null,
-        cover_url: data.image_url || null,
-        created_at: data.created_at || new Date().toISOString(),
-        updated_at: data.updated_at || new Date().toISOString(),
+        start_time: data.start_time || '',
+        end_time: data.end_time || null,
+        cover_url: data.cover_url || null,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
         details: {
           description: data.description || '',
-          location: '',
-          address: '',
-          category: '',
-          price: '',
-          capacity: '',
-          tags: [],
+          location: '', // Backend doesn't provide location name, using address from details
+          address: data.details?.address || '',
+          category: data.details?.category || '',
+          price: data.is_free ? 'Free' : (data.price ? `${data.price}` : ''),
+          capacity: data.details?.capacity || '',
+          tags: data.details?.tags || [],
         },
-        providers: data.provider ? {
-          id: data.provider.id.toString(),
-          name: data.provider.name,
-        } : undefined,
+        providers: {
+          id: data.provider_id.toString(),
+          name: `Provider ${data.provider_id}`,
+        },
       };
 
       setEvent(transformedData);
@@ -272,8 +272,8 @@ const EventDetails: React.FC = () => {
                 <div className="ml-6">
                   <p>{format(new Date(event.start_date), 'MMMM d, yyyy')}</p>
                   <p className="text-gray-600">
-                    {event.start_time}
-                    {event.end_time ? ` - ${event.end_time}` : ''}
+                    {event.start_time?.replace(':00', '')}
+                    {event.end_time ? ` - ${event.end_time?.replace(':00', '')}` : ''}
                   </p>
                   {event.end_date && (
                     <p className="text-gray-600 mt-1">
@@ -296,7 +296,9 @@ const EventDetails: React.FC = () => {
                   <DollarSign className="w-4 h-4" />
                   <span className="font-medium">{t('admin.event_details.price')}</span>
                 </div>
-                <p className="ml-6">{event.details.price}</p>
+                <p className="ml-6">
+                  {event.details.price || t('admin.event_details.free')}
+                </p>
               </div>
             </div>
           </Card>

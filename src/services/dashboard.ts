@@ -76,7 +76,7 @@ export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
       page_size: 50,
     });
 
-    const providers = providersResponse.results || [];
+    const providers = providersResponse.data || [];
 
     // For each provider, get their events
     const providerMetrics = await Promise.all(
@@ -91,7 +91,7 @@ export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
             }
           );
 
-          const allEvents = eventsResponse.results || [];
+          const allEvents = eventsResponse.data || [];
           const totalEvents = eventsResponse.pagination?.total || 0;
 
           // Count active events (future events)
@@ -140,7 +140,7 @@ export const getRecentEvents = async (limit: number = 10): Promise<RecentEvent[]
       ordering: '-created_at', // Most recent first
     });
 
-    const events = response.results || [];
+    const events = response.data || [];
 
     return events.map((event) => ({
       id: event.id,

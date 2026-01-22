@@ -45,42 +45,12 @@ const Providers: React.FC = () => {
         return;
       }
 
-      // Get actual event counts for each provider
-      const providersWithEventCount = await Promise.all(
-        providersData.map(async (provider) => {
-          try {
-            // Get events for this provider
-            const eventsResult = await searchEvents({ 
-              page_size: 1,
-              // Note: API might need provider_id filter - adjust based on actual API
-            });
-            
-            // Count events for this provider from the results
-            // Since we can't filter by provider_id in the API easily, 
-            // we'll fetch all events and filter client-side for now
-            const allEvents = await searchEvents({ page_size: 1000 });
-            const providerEvents = allEvents.events.filter(
-              event => event.provider_id === provider.id
-            );
-
-            return {
-              ...provider,
-              website_url: provider.website || '',
-              eventsCount: providerEvents.length,
-            };
-          } catch (countError) {
-            console.warn(
-              `Error counting events for provider ${provider.id}:`,
-              countError
-            );
-            return {
-              ...provider,
-              website_url: provider.website || '',
-              eventsCount: 0,
-            };
-          }
-        })
-      );
+      // Use event_count from backend response if available, otherwise count manually
+      const providersWithEventCount = providersData.map(provider => ({
+        ...provider,
+        website_url: provider.website || '',
+        eventsCount: (provider as any).event_count || 0, // Backend provides event_count
+      }));
 
       const sortedProviders = providersWithEventCount.sort((a, b) => {
         // First sort by events count (descending)
@@ -92,6 +62,7 @@ const Providers: React.FC = () => {
         const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
         return aDate - bDate;
       });
+      console.log('Setting providers:', sortedProviders);
       setProviders(sortedProviders);
     } catch (err: any) {
       console.error("Error fetching providers:", err);
