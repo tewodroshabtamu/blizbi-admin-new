@@ -1,4 +1,5 @@
 import { apiClient } from '../lib/api-client';
+import { PaginatedResponse } from '../types/api';
 import { EventData } from './events';
 import { ProviderData } from './providers';
 
@@ -41,8 +42,8 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
   try {
     // Fetch events and providers in parallel
     const [eventsResponse, providersResponse] = await Promise.all([
-      apiClient.get<{ pagination: { total: number } }>('/events/', { page_size: 1 }),
-      apiClient.get<{ pagination: { total: number } }>('/providers/', { page_size: 1 }),
+      apiClient.get<PaginatedResponse<any>>('/events/', { page_size: 1 }),
+      apiClient.get<PaginatedResponse<any>>('/providers/', { page_size: 1 }),
     ]);
 
     const totalEvents = eventsResponse.pagination?.total || 0;
@@ -71,18 +72,18 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
 export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
   try {
     // Get all providers
-    const providersResponse = await apiClient.get<{ data: ProviderData[] }>('/providers/', {
+    const providersResponse = await apiClient.get<PaginatedResponse<ProviderData>>('/providers/', {
       page_size: 50,
     });
 
-    const providers = providersResponse.data || [];
+    const providers = providersResponse.results || [];
 
     // For each provider, get their events
     const providerMetrics = await Promise.all(
       providers.map(async (provider) => {
         try {
           // Get events for this provider
-          const eventsResponse = await apiClient.get<{ data: EventData[]; pagination: { total: number } }>(
+          const eventsResponse = await apiClient.get<PaginatedResponse<EventData>>(
             '/events/',
             {
               provider_id: provider.id,
@@ -90,7 +91,7 @@ export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
             }
           );
 
-          const allEvents = eventsResponse.data || [];
+          const allEvents = eventsResponse.results || [];
           const totalEvents = eventsResponse.pagination?.total || 0;
 
           // Count active events (future events)
@@ -134,12 +135,12 @@ export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
  */
 export const getRecentEvents = async (limit: number = 10): Promise<RecentEvent[]> => {
   try {
-    const response = await apiClient.get<{ data: EventData[] }>('/events/', {
+    const response = await apiClient.get<PaginatedResponse<EventData>>('/events/', {
       page_size: limit,
       ordering: '-created_at', // Most recent first
     });
 
-    const events = response.data || [];
+    const events = response.results || [];
 
     return events.map((event) => ({
       id: event.id,

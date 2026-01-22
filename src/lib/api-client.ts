@@ -3,6 +3,24 @@ import { auth } from './firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+// List of public endpoints that don't require authentication
+const PUBLIC_ENDPOINTS = [
+    '/events/',
+    '/providers/',
+    '/feed/feed/',
+    '/feed/popular-events/',
+    '/feed/search/',
+    '/feed/map/events/',
+    '/feed/map/providers/',
+    '/health/',
+];
+
+// Check if endpoint is public
+const isPublicEndpoint = (url: string): boolean => {
+    if (!url) return false;
+    return PUBLIC_ENDPOINTS.some(endpoint => url.includes(endpoint));
+};
+
 class ApiClient {
     private client: AxiosInstance;
 
@@ -15,17 +33,28 @@ class ApiClient {
             timeout: 30000, // 30 seconds
         });
 
-        // Request interceptor to add Firebase auth token
+        // Request interceptor to add Firebase auth token (only for protected endpoints)
         this.client.interceptors.request.use(
             async (config: InternalAxiosRequestConfig) => {
-                try {
-                    const user = auth.currentUser;
-                    if (user) {
-                        const token = await user.getIdToken();
-                        config.headers.Authorization = `Bearer ${token}`;
+                // Only add auth token for protected endpoints
+                if (!isPublicEndpoint(config.url || '')) {
+                    try {
+                        const user = auth.currentUser;
+                        if (user) {
+                            const token = await user.getIdToken();
+                            if (token) {
+                                config.headers.Authorization = `Bearer ${token}`;
+                            } else {
+                                console.warn('No Firebase token available for protected endpoint:', config.url);
+                            }
+                        } else {
+                            console.warn('No authenticated user for protected endpoint:', config.url);
+                        }
+                    } catch (error) {
+                        console.error('Error getting Firebase token:', error);
+                        // Don't block the request, but log the error
+                        // The backend will return 401 if auth is truly required
                     }
-                } catch (error) {
-                    console.error('Error getting Firebase token:', error);
                 }
                 return config;
             },
@@ -47,7 +76,24 @@ class ApiClient {
                         case 401:
                             // Unauthorized - token might be expired
                             console.error('Unauthorized. Please log in again.');
-                            // Optionally trigger logout
+                            // Try to refresh token and retry if it's a protected endpoint
+                            if (!isPublicEndpoint(error.config?.url || '')) {
+                                try {
+                                    const user = auth.currentUser;
+                                    if (user) {
+                                        // Force refresh token
+                                        const newToken = await user.getIdToken(true);
+                                        // Retry the request with new token
+                                        if (error.config) {
+                                            error.config.headers.Authorization = `Bearer ${newToken}`;
+                                            return this.client.request(error.config);
+                                        }
+                                    }
+                                } catch (refreshError) {
+                                    console.error('Error refreshing token:', refreshError);
+                                    // Token refresh failed, user needs to re-authenticate
+                                }
+                            }
                             break;
                         case 403:
                             console.error('Forbidden. You do not have permission.');

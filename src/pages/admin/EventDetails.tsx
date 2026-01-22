@@ -4,11 +4,10 @@ import { ArrowLeft, Calendar, MapPin, Clock, Users, DollarSign, Edit, Trash2 } f
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { supabase } from '../../lib/supabase-client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
+import { getEventById, deleteEvent as deleteEventService, EventData } from '../../services/events';
 
 interface EventDetails {
   id: string;
@@ -66,90 +65,9 @@ const EventDetails: React.FC = () => {
   const [event, setEvent] = useState<EventDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [subscription, setSubscription] = useState<RealtimeChannel | null>(null);
 
   useEffect(() => {
     fetchEventDetails();
-  }, [id]);
-
-  // Setup real-time subscription for live updates
-  useEffect(() => {
-    if (!id) return;
-
-    const setupSubscription = async () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-
-      const newSubscription = supabase
-        .channel(`event_${id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'event',
-            filter: `id=eq.${id}`
-          },
-          async (payload) => {
-            // Fetch fresh data to ensure we have all relations
-            const { data, error } = await supabase
-              .from('event')
-              .select(`
-                id,
-                title,
-                provider_id,
-                event_type,
-                start_date,
-                end_date,
-                start_time,
-                end_time,
-                cover_url,
-                details,
-                created_at,
-                updated_at,
-                providers!provider_id (
-                  id,
-                  name
-                )
-              `)
-              .eq('id', id)
-              .single() as { data: EventData | null, error: any };
-
-            if (!error && data) {
-              const transformedData: EventDetails = {
-                id: data.id,
-                title: data.title,
-                provider_id: data.provider_id,
-                provider_name: data.providers.name,
-                event_type: data.event_type,
-                start_date: data.start_date,
-                end_date: data.end_date,
-                start_time: data.start_time,
-                end_time: data.end_time,
-                cover_url: data.cover_url,
-                created_at: data.created_at,
-                updated_at: data.updated_at,
-                details: data.details,
-                providers: data.providers
-              };
-              setEvent(transformedData);
-              toast.success(t('admin.event_details.event_updated'));
-            }
-          }
-        )
-        .subscribe();
-
-      setSubscription(newSubscription);
-    };
-
-    setupSubscription();
-
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
   }, [id]);
 
   const fetchEventDetails = async () => {
@@ -162,58 +80,41 @@ const EventDetails: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Optimize the query to only fetch needed fields
-      const { data, error } = await supabase
-        .from('event')
-        .select(`
-          id,
-          title,
-          provider_id,
-          event_type,
-          start_date,
-          end_date,
-          start_time,
-          end_time,
-          cover_url,
-          details,
-          created_at,
-          updated_at,
-          providers!provider_id (
-            id,
-            name
-          )
-        `)
-        .eq('id', id)
-        .single() as { data: EventData | null, error: any };
-
-      if (error) throw error;
-
-      if (!data) {
-        throw new Error(t('admin.event_details.event_not_found'));
-      }
+      const data = await getEventById(id);
 
       // Transform the data to match EventDetails type
       const transformedData: EventDetails = {
-        id: data.id,
+        id: data.id.toString(),
         title: data.title,
-        provider_id: data.provider_id,
-        provider_name: data.providers.name,
-        event_type: data.event_type,
+        provider_id: data.provider_id.toString(),
+        provider_name: data.provider?.name,
+        event_type: 'event' as const, // Default, adjust based on API response
         start_date: data.start_date,
-        end_date: data.end_date,
-        start_time: data.start_time,
-        end_time: data.end_time,
-        cover_url: data.cover_url,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        details: data.details,
-        providers: data.providers
+        end_date: data.end_date || null,
+        start_time: '', // Extract from start_date if needed
+        end_time: null,
+        cover_url: data.image_url || null,
+        created_at: data.created_at || new Date().toISOString(),
+        updated_at: data.updated_at || new Date().toISOString(),
+        details: {
+          description: data.description || '',
+          location: '',
+          address: '',
+          category: '',
+          price: '',
+          capacity: '',
+          tags: [],
+        },
+        providers: data.provider ? {
+          id: data.provider.id.toString(),
+          name: data.provider.name,
+        } : undefined,
       };
 
       setEvent(transformedData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching event details:', err);
-      const errorMessage = err instanceof Error ? err.message : t('admin.event_details.failed_to_fetch');
+      const errorMessage = err?.message || t('admin.event_details.failed_to_fetch');
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -225,18 +126,12 @@ const EventDetails: React.FC = () => {
     if (!event || !window.confirm(t('admin.event_details.delete_confirmation'))) return;
 
     try {
-      const { error } = await supabase
-        .from('event')
-        .delete()
-        .eq('id', event.id);
-
-      if (error) throw error;
-
+      await deleteEventService(event.id);
       toast.success(t('admin.event_details.event_deleted'));
       navigate('/admin/events');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting event:', err);
-      toast.error(t('admin.event_details.failed_to_delete'));
+      toast.error(err?.message || t('admin.event_details.failed_to_delete'));
     }
   };
 

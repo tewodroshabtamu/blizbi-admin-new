@@ -66,7 +66,7 @@ export const searchEvents = async (
     const response = await apiClient.get<PaginatedResponse<EventData>>('/events/', params);
 
     return {
-      events: response.data,
+      events: response.results || [],
       totalCount: response.pagination.total,
       hasMore: response.pagination.next !== null && response.pagination.next !== undefined,
       page: response.pagination.page,
@@ -138,7 +138,7 @@ export const getPopularEvents = async (limit: number = 8): Promise<EventData[]> 
       page_size: limit,
       ordering: '-created_at', // Most recent first
     });
-    return response.data;
+    return response.results || [];
   } catch (error) {
     console.error('Error fetching popular events:', error);
     throw error;

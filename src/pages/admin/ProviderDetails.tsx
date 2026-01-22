@@ -1,24 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase-client';
+import { getProviderById, deleteProvider as deleteProviderService, ProviderData } from '../../services/providers';
 import { Card } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
-interface ProviderDetails {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  created_at: string;
+type ProviderDetails = ProviderData & {
   cover_url?: string;
   website_url?: string;
   short_description?: string;
   rss_urls?: string[];
-}
+};
 
 const ProviderDetails: React.FC = () => {
   const { t } = useTranslation();
@@ -37,18 +31,11 @@ const ProviderDetails: React.FC = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('providers')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-
-      setProvider(data);
-    } catch (err) {
+      const data = await getProviderById(id);
+      setProvider(data as ProviderDetails);
+    } catch (err: any) {
       console.error('Error fetching provider details:', err);
-      setError(err instanceof Error ? err.message : t('admin.provider_details.failed_to_fetch'));
+      setError(err?.message || t('admin.provider_details.failed_to_fetch'));
     } finally {
       setLoading(false);
     }
@@ -58,18 +45,12 @@ const ProviderDetails: React.FC = () => {
     if (!provider) return;
     if (window.confirm(t('admin.provider_details.delete_confirmation'))) {
       try {
-        const { error } = await supabase
-          .from('providers')
-          .delete()
-          .eq('id', provider.id);
-
-        if (error) throw error;
-
+        await deleteProviderService(provider.id);
         toast.success(t('admin.provider_details.provider_deleted'));
         navigate('/admin/providers');
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error deleting provider:', err);
-        toast.error(t('admin.provider_details.failed_to_delete'));
+        toast.error(err?.message || t('admin.provider_details.failed_to_delete'));
       }
     }
   };
@@ -142,9 +123,11 @@ const ProviderDetails: React.FC = () => {
           <div>
             <span className="font-medium">{t('admin.provider_details.address')}:</span> {provider.address}
           </div>
-          <div>
-            <span className="font-medium">{t('admin.provider_details.website')}:</span> <a href={provider.website_url} className="text-blizbi-teal hover:underline">{provider.website_url}</a>
-          </div>
+          {provider.website_url || provider.website ? (
+            <div>
+              <span className="font-medium">{t('admin.provider_details.website')}:</span> <a href={provider.website_url || provider.website} className="text-blizbi-teal hover:underline">{provider.website_url || provider.website}</a>
+            </div>
+          ) : null}
           <div>
             <span className="font-medium">{t('admin.provider_details.short_description')}:</span> {provider.short_description}
           </div>

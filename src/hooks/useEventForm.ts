@@ -1,8 +1,6 @@
 import { useState, useCallback } from "react";
-import { Database } from "../types/supabase";
 import { useTranslation } from "react-i18next";
-
-type Provider = Database['public']['Tables']['providers']['Row'];
+import { ProviderData } from "../services/providers";
 
 export interface EventFormData {
   name: string;
@@ -98,23 +96,24 @@ export const useEventForm = () => {
   }, [formData, t]);
 
   const setFormDataFromEvent = useCallback((eventData: any) => {
+    // Handle both Supabase format (with details) and API format
     const details = eventData.details as any || {};
     
     setFormData({
       name: eventData.title || "",
-      description: details.description || "",
-      provider: eventData.providers?.name || "",
-      startDate: eventData.start_date || "",
-      endDate: eventData.end_date || "",
-      startTime: eventData.start_time || "",
-      endTime: eventData.end_time || "",
+      description: eventData.description || details.description || "",
+      provider: eventData.provider?.name || eventData.providers?.name || "",
+      startDate: eventData.start_date ? eventData.start_date.split('T')[0] : "",
+      endDate: eventData.end_date ? eventData.end_date.split('T')[0] : "",
+      startTime: eventData.start_time || (eventData.start_date ? eventData.start_date.split('T')[1]?.substring(0, 5) : ""),
+      endTime: eventData.end_time || (eventData.end_date ? eventData.end_date.split('T')[1]?.substring(0, 5) : ""),
       location: details.location || "",
       address: details.address || "",
       category: details.category || "",
       priceType: eventData.price_type || "free",
       price: details.price || "",
       capacity: details.capacity || "",
-      imageUrl: eventData.cover_url || "",
+      imageUrl: eventData.image_url || eventData.cover_url || "",
       tags: details.tags || [],
       status: eventData.event_type === 'event' ? 'published' : 'draft',
     });

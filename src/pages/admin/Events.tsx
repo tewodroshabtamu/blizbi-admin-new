@@ -5,21 +5,23 @@ import Table from "../../components/Table";
 import { Card } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { supabase } from "../../lib/supabase-client";
-import { Database } from "../../types/supabase";
 import { toast } from "sonner";
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { useTranslation } from "react-i18next";
 import Pagination from "../../components/ui/Pagination";
+import { searchEvents, createEvent as createEventService, updateEvent as updateEventService, deleteEvent as deleteEventService, EventData } from "../../services/events";
 
 type Event = {
-  id: string;
+  id: number | string;
   title: string;
-  event_type: string;
+  event_type?: string;
   start_date: string;
   end_date: string | null;
   created_at: string;
   provider_name?: string;
+  provider?: {
+    id: number;
+    name: string;
+  };
   views?: number;
   participants?: number;
 };
@@ -32,108 +34,37 @@ const Events: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const [subscription, setSubscription] = useState<RealtimeChannel | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const ITEMS_PER_PAGE = 10;
 
-  // Optimized fetch with pagination and proper select
+  // Fetch events from API
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
       // Fetch all events for client-side filtering (like providers page)
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('event')
-        .select(`
-          id,
-          title,
-          event_type,
-          start_date,
-          end_date,
-          created_at,
-          providers!provider_id (
-            id,
-            name
-          )
-        `)
-        .order('created_at', { ascending: false });
+      // Using a large page_size to get all events for filtering
+      const result = await searchEvents({ page_size: 1000 });
 
-      if (eventsError) throw eventsError;
-
-      if (!eventsData) {
-        setEvents([]);
-        setTotalCount(0);
-        return;
-      }
-
-      const transformedEvents = eventsData.map(event => {
-        const { providers, ...eventData } = event;
-        return {
-          ...eventData,
-          provider_name: Array.isArray(providers) && providers.length > 0
-            ? providers[0].name
-            : t('admin.events.unknown_provider'),
-          views: 0,
-          participants: 0,
-        };
-      });
+      const transformedEvents: Event[] = result.events.map(event => ({
+        ...event,
+        id: event.id.toString(),
+        provider_name: event.provider?.name || t('admin.events.unknown_provider'),
+        views: 0, // TODO: Add views from analytics when available
+        participants: 0, // TODO: Add participants from analytics when available
+      }));
 
       setEvents(transformedEvents);
-      setTotalCount(transformedEvents.length);
-    } catch (err) {
+      setTotalCount(result.totalCount);
+    } catch (err: any) {
       console.error('Error fetching events:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch events');
+      setError(err?.message || 'Failed to fetch events');
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  // Setup real-time subscription
-  useEffect(() => {
-    const setupSubscription = async () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-
-      const newSubscription = supabase
-        .channel('events_channel')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'event'
-          },
-          (payload) => {
-            // Handle real-time updates
-            if (payload.eventType === 'INSERT') {
-              setEvents(prev => [payload.new as Event, ...prev]);
-              setTotalCount(prev => prev + 1);
-            } else if (payload.eventType === 'DELETE') {
-              setEvents(prev => prev.filter(event => event.id !== payload.old.id));
-              setTotalCount(prev => prev - 1);
-            } else if (payload.eventType === 'UPDATE') {
-              setEvents(prev => prev.map(event =>
-                event.id === payload.new.id ? { ...event, ...payload.new } : event
-              ));
-            }
-          }
-        )
-        .subscribe();
-
-      setSubscription(newSubscription);
-    };
-
-    setupSubscription();
-
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
-  }, []);
+  }, [t]);
 
   // Fetch events when page changes
   useEffect(() => {
@@ -166,59 +97,48 @@ const Events: React.FC = () => {
   };
 
   // Create event
-  const createEvent = async (eventData: Database['public']['Tables']['event']['Insert']) => {
+  const createEvent = async (eventData: Partial<EventData>) => {
     try {
-      const { data, error } = await supabase
-        .from('event')
-        .insert([eventData])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await createEventService(eventData);
 
       // Add to local state with mock metrics
-      const newEvent = {
+      const newEvent: Event = {
         ...data,
-        provider_name: t('admin.events.unknown_provider'), // Will be updated on next fetch
+        id: data.id.toString(),
+        provider_name: data.provider?.name || t('admin.events.unknown_provider'),
         views: 0,
         participants: 0,
       };
       setEvents(prev => [newEvent, ...prev]);
+      setTotalCount(prev => prev + 1);
       return { success: true, data };
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating event:', err);
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'Failed to create event'
+        error: err?.message || 'Failed to create event'
       };
     }
   };
 
   // Update event
-  const updateEvent = async (id: string, updates: Database['public']['Tables']['event']['Update']) => {
+  const updateEvent = async (id: string, updates: Partial<EventData>) => {
     try {
-      const { data, error } = await supabase
-        .from('event')
-        .update({ ...updates, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await updateEventService(id, updates);
 
       // Update local state
       setEvents(prev => prev.map(event =>
         event.id === id
-          ? { ...event, ...data }
+          ? { ...event, ...data, id: data.id.toString(), provider_name: data.provider?.name || event.provider_name }
           : event
       ));
 
       return { success: true, data };
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error updating event:', err);
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'Failed to update event'
+        error: err?.message || 'Failed to update event'
       };
     }
   };
@@ -226,21 +146,17 @@ const Events: React.FC = () => {
   // Delete event
   const deleteEvent = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from('event')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await deleteEventService(id);
 
       // Remove from local state
       setEvents(prev => prev.filter(event => event.id !== id));
+      setTotalCount(prev => prev - 1);
       return { success: true };
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error deleting event:', err);
       return {
         success: false,
-        error: err instanceof Error ? err.message : 'Failed to delete event'
+        error: err?.message || 'Failed to delete event'
       };
     }
   };

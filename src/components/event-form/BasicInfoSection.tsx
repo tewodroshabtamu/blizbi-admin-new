@@ -3,10 +3,10 @@ import { Card } from "../ui/card";
 import { FormField } from "./FormField";
 import { FormInput, FormTextArea, FormSelect } from "./FormInput";
 import { EventFormData } from "../../hooks/useEventForm";
-import { Database } from "../../types/supabase";
+import { ProviderData } from "../../services/providers";
 import { useTranslation } from "react-i18next";
 
-type Provider = Database['public']['Tables']['providers']['Row'];
+type Provider = ProviderData;
 
 interface BasicInfoSectionProps {
   formData: EventFormData;

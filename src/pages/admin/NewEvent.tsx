@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { supabase } from "../../lib/supabase-client";
 import { toast } from "sonner";
 import ImageUpload from "../../components/ImageUpload";
 import { useEventForm } from "../../hooks/useEventForm";
@@ -14,6 +13,7 @@ import { DateTimeSection } from "../../components/event-form/DateTimeSection";
 import { LocationSection } from "../../components/event-form/LocationSection";
 import { EventDetailsSection } from "../../components/event-form/EventDetailsSection";
 import { useTranslation } from "react-i18next";
+import { getEventById } from "../../services/events";
 
 const NewEvent: React.FC = () => {
   const { t } = useTranslation();
@@ -44,42 +44,16 @@ const NewEvent: React.FC = () => {
       setIsLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
-        .from('event')
-        .select(`
-          id,
-          title,
-          provider_id,
-          event_type,
-          start_date,
-          end_date,
-          start_time,
-          end_time,
-          cover_url,
-          price_type,
-          details,
-          providers!provider_id (
-            id,
-            name
-          )
-        `)
-        .eq('id', eventId)
-        .single();
-
-      if (error) throw error;
-
-      if (!data) {
-        throw new Error(t("admin.new_event.event_not_found"));
-      }
+      const data = await getEventById(eventId);
 
       eventForm.setFormDataFromEvent(data);
 
-      if (data.cover_url) {
-        setImagePreview(data.cover_url);
+      if (data.image_url) {
+        setImagePreview(data.image_url);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error loading event data:', err);
-      const errorMessage = err instanceof Error ? err.message : t("admin.new_event.failed_to_load");
+      const errorMessage = err?.message || t("admin.new_event.failed_to_load");
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -87,24 +61,23 @@ const NewEvent: React.FC = () => {
     }
   };
 
-  // Upload image to storage - exactly like providers
+  // Upload image to storage
+  // TODO: Replace with backend API endpoint for image uploads
+  // For now, this is a placeholder - image uploads should be handled via the backend API
   const uploadImage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("event-covers")
-      .upload(fileName, file);
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("event-covers").getPublicUrl(fileName);
-
-    return publicUrl;
+    // TODO: Implement image upload via backend API
+    // Example: const formData = new FormData(); formData.append('file', file);
+    // const response = await apiClient.post('/events/upload-image/', formData);
+    // return response.image_url;
+    
+    // Temporary: Return a data URL for preview
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   // Handle image change - exactly like providers

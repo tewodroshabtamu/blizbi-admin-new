@@ -13,12 +13,13 @@ import {
 import Table from "../../components/Table";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
-import { supabase } from "../../lib/supabase-client";
-import { Database } from "../../types/supabase";
 import { useTranslation } from "react-i18next";
+import { getProviders, deleteProvider as deleteProviderService, ProviderData } from "../../services/providers";
+import { searchEvents } from "../../services/events";
 
-type Provider = Database["public"]["Tables"]["providers"]["Row"] & {
+type Provider = ProviderData & {
   eventsCount?: number;
+  website_url?: string;
 };
 
 const Providers: React.FC = () => {
@@ -30,20 +31,16 @@ const Providers: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  // Fetch providers from database
+  // Fetch providers from API
   const fetchProviders = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const { data: providersData, error: providersError } = await supabase
-        .from("providers")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Fetch all providers (using large page_size to get all)
+      const providersData = await getProviders(1, 1000);
 
-      if (providersError) throw providersError;
-
-      if (!providersData) {
+      if (!providersData || providersData.length === 0) {
         setProviders([]);
         return;
       }
@@ -51,75 +48,86 @@ const Providers: React.FC = () => {
       // Get actual event counts for each provider
       const providersWithEventCount = await Promise.all(
         providersData.map(async (provider) => {
-          const { count, error: countError } = await supabase
-            .from("event")
-            .select("*", { count: "exact", head: true })
-            .eq("provider_id", provider.id);
+          try {
+            // Get events for this provider
+            const eventsResult = await searchEvents({ 
+              page_size: 1,
+              // Note: API might need provider_id filter - adjust based on actual API
+            });
+            
+            // Count events for this provider from the results
+            // Since we can't filter by provider_id in the API easily, 
+            // we'll fetch all events and filter client-side for now
+            const allEvents = await searchEvents({ page_size: 1000 });
+            const providerEvents = allEvents.events.filter(
+              event => event.provider_id === provider.id
+            );
 
-          if (countError) {
+            return {
+              ...provider,
+              website_url: provider.website || '',
+              eventsCount: providerEvents.length,
+            };
+          } catch (countError) {
             console.warn(
               `Error counting events for provider ${provider.id}:`,
               countError
             );
+            return {
+              ...provider,
+              website_url: provider.website || '',
+              eventsCount: 0,
+            };
           }
-
-          return {
-            ...provider,
-            eventsCount: count || 0,
-          };
         })
       );
 
       const sortedProviders = providersWithEventCount.sort((a, b) => {
         // First sort by events count (descending)
         if (b.eventsCount !== a.eventsCount) {
-          return b.eventsCount - a.eventsCount;
+          return (b.eventsCount || 0) - (a.eventsCount || 0);
         }
         // Then sort by created_at (ascending)
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        const aDate = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const bDate = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return aDate - bDate;
       });
       setProviders(sortedProviders);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error fetching providers:", err);
       setError(
-        err instanceof Error ? err.message : "Failed to fetch providers"
+        err?.message || "Failed to fetch providers"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteProvider = async (id: string) => {
+  const deleteProvider = async (id: string | number) => {
     try {
-      const { data: events, error: eventsError } = await supabase
-        .from("event")
-        .select("id")
-        .eq("provider_id", id);
+      // Check if provider has events
+      const allEvents = await searchEvents({ page_size: 1000 });
+      const providerEvents = allEvents.events.filter(
+        event => event.provider_id === Number(id)
+      );
 
-      if (eventsError) throw eventsError;
-
-      if (events && events.length > 0) {
+      if (providerEvents.length > 0) {
         return {
           success: false,
           error: t("admin.providers.cannot_delete_with_events"),
         };
       }
 
-      const { error } = await supabase.from("providers").delete().eq("id", id);
-
-      if (error) throw error;
+      await deleteProviderService(id);
 
       // Remove from local state
       setProviders((prev) => prev.filter((provider) => provider.id !== id));
       return { success: true };
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error deleting provider:", err);
       return {
         success: false,
-        error:
-          err instanceof Error
-            ? err.message
-            : t("admin.providers.failed_to_delete"),
+        error: err?.message || t("admin.providers.failed_to_delete"),
       };
     }
   };
@@ -161,7 +169,7 @@ const Providers: React.FC = () => {
     return matchesSearch && matchesEventRange;
   });
 
-  const handleDelete = async (providerId: string) => {
+  const handleDelete = async (providerId: string | number) => {
     if (window.confirm(t("admin.providers.delete_confirmation"))) {
       const result = await deleteProvider(providerId);
       if (!result.success) {
@@ -170,13 +178,13 @@ const Providers: React.FC = () => {
     }
   };
 
-  const handleEdit = (providerId: string) => {
+  const handleEdit = (providerId: string | number) => {
     navigate(`/admin/providers/new?edit=${providerId}`, {
       state: { from: "providers_table" },
     });
   };
 
-  const handleView = (providerId: string) => {
+  const handleView = (providerId: string | number) => {
     navigate(`/admin/providers/${providerId}`);
   };
 
@@ -196,19 +204,26 @@ const Providers: React.FC = () => {
     },
     {
       header: t("admin.providers.table.website"),
-      accessor: (provider: Provider) => (
-        <div className="flex items-center gap-2">
-          <Globe className="w-4 h-4 text-gray-400" />
-          <a
-            href={provider.website_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blizbi-teal hover:text-blizbi-teal/80 font-medium"
-          >
-            {provider.website_url.replace("https://", "")}
-          </a>
-        </div>
-      ),
+      accessor: (provider: Provider) => {
+        const websiteUrl = provider.website_url || provider.website || '';
+        return (
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-gray-400" />
+            {websiteUrl ? (
+              <a
+                href={websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blizbi-teal hover:text-blizbi-teal/80 font-medium"
+              >
+                {websiteUrl.replace(/^https?:\/\//, "")}
+              </a>
+            ) : (
+              <span className="text-gray-400 text-sm">{t("admin.providers.no_website")}</span>
+            )}
+          </div>
+        );
+      },
     },
     {
       header: t("admin.providers.table.events"),
@@ -324,7 +339,7 @@ const Providers: React.FC = () => {
         <Table
           columns={columns}
           data={filteredProviders}
-          keyExtractor={(provider) => provider.id}
+          keyExtractor={(provider) => provider.id.toString()}
         />
       </Card>
     </div>

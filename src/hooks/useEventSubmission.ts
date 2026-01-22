@@ -1,11 +1,9 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { supabase } from "../lib/supabase-client";
-import { Database } from "../types/supabase";
+import { createEvent, updateEvent, EventData } from "../services/events";
+import { ProviderData } from "../services/providers";
 import { EventFormData } from "./useEventForm";
-
-type Provider = Database['public']['Tables']['providers']['Row'];
 
 export const useEventSubmission = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -13,7 +11,7 @@ export const useEventSubmission = () => {
 
   const submitEvent = useCallback(async (
     formData: EventFormData,
-    providers: Provider[],
+    providers: ProviderData[],
     isEditMode: boolean,
     editId?: string
   ) => {
@@ -28,51 +26,25 @@ export const useEventSubmission = () => {
         return;
       }
 
-      // Prepare the event data according to the database schema
-      const eventData = {
+      // Prepare the event data according to the API schema
+      const eventData: Partial<EventData> = {
         title: formData.name,
         provider_id: selectedProvider.id,
-        event_type: 'event' as const,
+        description: formData.description,
         start_date: formData.startDate,
         end_date: formData.endDate || null,
-        start_time: formData.startTime,
-        end_time: formData.endTime || null,
-        cover_url: formData.imageUrl || '',
-        price_type: formData.priceType === 'ticket_required' ? 'paid' as const : 'free' as const,
-        price_amount: formData.priceType === 'ticket_required' && formData.price ? parseFloat(formData.price) : null,
-        details: {
-          description: formData.description,
-          location: formData.location,
-          address: formData.address,
-          category: formData.category,
-          price: formData.price,
-          capacity: formData.capacity,
-          tags: formData.tags,
-        }
+        image_url: formData.imageUrl || undefined,
+        // Note: API might have different field names - adjust based on actual API
+        // location_id, price_type, etc. may need to be mapped differently
       };
 
       if (isEditMode && editId) {
         // Update existing event
-        const { error } = await supabase
-          .from('event')
-          .update({
-            ...eventData,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', editId);
-
-        if (error) throw error;
-
+        await updateEvent(editId, eventData);
         toast.success('Event updated successfully!');
       } else {
         // Create new event
-        const { data, error } = await supabase
-          .from('event')
-          .insert([eventData])
-          .select();
-
-        if (error) throw error;
-
+        await createEvent(eventData);
         toast.success('Event created successfully!');
       }
 
@@ -82,7 +54,7 @@ export const useEventSubmission = () => {
       navigate('/admin/events');
     } catch (error: any) {
       console.error('Error saving event:', error);
-      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} event: ` + error.message);
+      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} event: ${error?.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }

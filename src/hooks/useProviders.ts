@@ -1,11 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "../lib/supabase-client";
-import { Database } from "../types/supabase";
-
-type Provider = Database['public']['Tables']['providers']['Row'];
+import { getProviders, ProviderData } from "../services/providers";
 
 export const useProviders = () => {
-  const [providers, setProviders] = useState<Provider[]>([]);
+  const [providers, setProviders] = useState<ProviderData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,17 +11,16 @@ export const useProviders = () => {
       setLoading(true);
       setError(null);
 
-      const { data: providersData, error: fetchError } = await supabase
-        .from('providers')
-        .select('*')
-        .order('name', { ascending: true });
+      const providersData = await getProviders(1, 1000);
+      // Sort by name
+      const sortedProviders = [...providersData].sort((a, b) => 
+        (a.name || '').localeCompare(b.name || '')
+      );
 
-      if (fetchError) throw fetchError;
-
-      setProviders(providersData || []);
-    } catch (err) {
+      setProviders(sortedProviders);
+    } catch (err: any) {
       console.error('Error fetching providers:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch providers';
+      const errorMessage = err?.message || 'Failed to fetch providers';
       setError(errorMessage);
     } finally {
       setLoading(false);
