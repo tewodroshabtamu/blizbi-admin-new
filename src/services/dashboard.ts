@@ -61,7 +61,6 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
       viewChange: '-2.4%',
     };
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
     throw error;
   }
 };
@@ -111,7 +110,6 @@ export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
             })),
           };
         } catch (error) {
-          console.error(`Error fetching events for provider ${provider.id}:`, error);
           return {
             id: provider.id,
             name: provider.name,
@@ -125,7 +123,6 @@ export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
 
     return providerMetrics;
   } catch (error) {
-    console.error('Error fetching provider metrics:', error);
     throw error;
   }
 };
@@ -135,22 +132,45 @@ export const getProviderMetrics = async (): Promise<ProviderMetrics[]> => {
  */
 export const getRecentEvents = async (limit: number = 10): Promise<RecentEvent[]> => {
   try {
-    const response = await apiClient.get<PaginatedResponse<EventData>>('/events/', {
-      page_size: limit,
-      ordering: '-created_at', // Most recent first
+    // Fetch events and providers in parallel
+    const [eventsResponse, providersResponse] = await Promise.all([
+      apiClient.get<PaginatedResponse<EventData>>('/events/', {
+        page_size: limit,
+        ordering: '-created_at', // Most recent first
+      }),
+      apiClient.get<PaginatedResponse<ProviderData>>('/providers/', {
+        page_size: 100, // Get enough providers to match
+      }),
+    ]);
+
+    const events = eventsResponse.data || [];
+    const providers = providersResponse.data || [];
+
+    // Create a map of provider_id -> provider name for quick lookup
+    const providerMap = new Map<number, string>();
+    providers.forEach((provider) => {
+      providerMap.set(provider.id, provider.name);
     });
 
-    const events = response.data || [];
+    return events.map((event) => {
+      // Backend returns provider as a number (provider_id)
+      const providerId = typeof event.provider === 'number' 
+        ? event.provider 
+        : event.provider_id;
+      
+      const providerName = providerId 
+        ? providerMap.get(providerId) || `Provider ${providerId}`
+        : 'Unknown';
 
-    return events.map((event) => ({
-      id: event.id,
-      title: event.title,
-      start_date: event.start_date,
-      provider_name: event.provider?.name || 'Unknown',
-      category: undefined, // TODO: Add category support
-    }));
+      return {
+        id: event.id,
+        title: typeof event.title === 'string' ? event.title : (event.title?.en || 'Untitled Event'),
+        start_date: event.start_date || '',
+        provider_name: providerName,
+        category: undefined, // TODO: Add category support
+      };
+    });
   } catch (error) {
-    console.error('Error fetching recent events:', error);
     throw error;
   }
 };
