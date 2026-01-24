@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, connectAuthEmulator } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -16,5 +16,10 @@ const app = initializeApp(firebaseConfig);
 // Initialize Auth
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+// Uncomment the line below for local development with Firebase emulator
+// if (import.meta.env.DEV) {
+//   connectAuthEmulator(auth, "http://localhost:9099");
+// }
 
 export default app;

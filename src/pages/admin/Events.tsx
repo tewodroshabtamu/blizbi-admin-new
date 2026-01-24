@@ -15,7 +15,6 @@ import { DeleteConfirmationModal } from "../../components/ui/DeleteConfirmationM
 const Events: React.FC = () => {
   const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProvider, setSelectedProvider] = useState("all");
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,17 +36,23 @@ const Events: React.FC = () => {
       // Using a large page_size to get all events for filtering
       const result = await searchEvents({ page_size: 1000 });
 
-      const transformedEvents: AdminEvent[] = result.events.map(event => ({
-        ...event,
-        id: event.id.toString(),
-        // Backend returns provider as a number, not an object
-        // For now, we'll show the provider_id as name until we get provider details
-        provider_name: typeof event.provider === 'object' && event.provider?.name
-          ? event.provider.name
-          : `Provider ${event.provider_id || event.provider}`,
-        views: 0, // TODO: Add views from analytics when available
-        participants: 0, // TODO: Add participants from analytics when available
-      }));
+      const transformedEvents: AdminEvent[] = result.events
+        .filter(event => event.start_date) // Only include events with start_date
+        .map(event => ({
+          id: event.id.toString(),
+          title: event.title,
+          start_date: event.start_date!,
+          end_date: event.end_date || null,
+          created_at: event.created_at || new Date().toISOString(),
+          event_type: event.type,
+          // Backend returns provider as a number, not an object
+          // For now, we'll show the provider_id as name until we get provider details
+          provider_name: typeof event.provider === 'object' && event.provider !== null && 'name' in event.provider
+            ? (event.provider as { name: string }).name
+            : `Provider ${event.provider_id || (typeof event.provider === 'number' ? event.provider : 'Unknown')}`,
+          views: 0, // TODO: Add views from analytics when available
+          participants: 0, // TODO: Add participants from analytics when available
+        }));
 
       setEvents(transformedEvents);
       setTotalCount(result.totalCount);
@@ -95,11 +100,17 @@ const Events: React.FC = () => {
 
       // Add to local state with mock metrics
       const newEvent: AdminEvent = {
-        ...data,
         id: data.id.toString(),
-        provider_name: data.provider?.name || t('admin.events.unknown_provider'),
+        title: data.title,
+        start_date: data.start_date || new Date().toISOString(),
+        end_date: data.end_date || null,
+        created_at: data.created_at || new Date().toISOString(),
+        provider_name: typeof data.provider === 'object' && data.provider !== null && 'name' in data.provider
+          ? (data.provider as { name: string }).name
+          : t('admin.events.unknown_provider'),
         views: 0,
         participants: 0,
+        event_type: data.type,
       };
       setEvents(prev => [newEvent, ...prev]);
       setTotalCount(prev => prev + 1);
@@ -120,7 +131,18 @@ const Events: React.FC = () => {
       // Update local state
       setEvents(prev => prev.map(event =>
         event.id === id
-          ? { ...event, ...data, id: data.id.toString(), provider_name: data.provider?.name || event.provider_name }
+          ? {
+              ...event,
+              id: data.id.toString(),
+              title: data.title,
+              start_date: data.start_date || event.start_date,
+              end_date: data.end_date ?? event.end_date,
+              created_at: data.created_at || event.created_at,
+              event_type: data.type || event.event_type,
+              provider_name: typeof data.provider === 'object' && data.provider !== null && 'name' in data.provider
+                ? (data.provider as { name: string }).name
+                : event.provider_name
+            }
           : event
       ));
 
@@ -195,14 +217,14 @@ const Events: React.FC = () => {
     {
       header: t("admin.events.table.name"),
       width: "30%",
-      accessor: (event: Event) => (
+      accessor: (event: AdminEvent) => (
         <div className="flex flex-col py-1 min-h-[60px]">
           <span className="font-medium text-gray-900 leading-tight break-words hyphens-auto max-w-[180px] sm:max-w-[240px] md:max-w-[300px] lg:max-w-[400px] xl:max-w-none">{event.title}</span>
           <div className="flex gap-2 mt-2">
             <Badge
-              className={`w-fit text-xs ${getEventStatus(event.event_type).color}`}
+              className={`w-fit text-xs ${getEventStatus(event.event_type || '').color}`}
             >
-              {getEventStatus(event.event_type).label}
+              {getEventStatus(event.event_type || '').label}
             </Badge>
           </div>
           <span className="text-xs text-gray-500 mt-1">
@@ -214,14 +236,14 @@ const Events: React.FC = () => {
     {
       header: t("admin.events.table.provider"),
       width: "15%",
-      accessor: (event: Event) => (
-        <span className="text-blizbi-teal font-medium text-sm truncate block max-w-[100px] sm:max-w-[150px] lg:max-w-[200px]">{event.provider_name}</span>
+      accessor: (event: AdminEvent) => (
+        <span className="text-blizbi-teal font-medium text-sm truncate block max-w-[100px] sm:max-w-[150px] lg:max-w-[200px]">{event.provider_name || 'Unknown'}</span>
       ),
     },
     {
       header: t("admin.events.table.dates"),
       width: "18%",
-      accessor: (event: Event) => (
+      accessor: (event: AdminEvent) => (
         <div className="text-xs sm:text-sm">
           <div className="font-medium">{new Date(event.start_date).toLocaleDateString()}</div>
           <div className="text-gray-500">
@@ -233,7 +255,7 @@ const Events: React.FC = () => {
     {
       header: t("admin.events.table.views"),
       width: "10%",
-      accessor: (event: Event) => (
+      accessor: (event: AdminEvent) => (
         <div className="flex items-center gap-1 sm:gap-2">
           <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
           <span className="text-sm font-medium">{event.views?.toLocaleString() || '0'}</span>
@@ -243,7 +265,7 @@ const Events: React.FC = () => {
     {
       header: t("admin.events.table.participants"),
       width: "12%",
-      accessor: (event: Event) => (
+      accessor: (event: AdminEvent) => (
         <div className="flex items-center gap-1 sm:gap-2">
           <Users className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
           <span className="text-sm font-medium">
@@ -256,12 +278,12 @@ const Events: React.FC = () => {
       header: t("admin.events.table.actions"),
       width: "23%",
       align: "right" as const,
-      accessor: (event: Event) => (
+      accessor: (event: AdminEvent) => (
         <div className="flex items-center justify-end gap-1 sm:gap-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleView(event.id)}
+            onClick={() => handleView(String(event.id))}
             className="text-gray-600 hover:text-gray-900 p-1 sm:p-2"
           >
             <Eye className="w-4 h-4" />
@@ -269,7 +291,7 @@ const Events: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleEdit(event.id)}
+            onClick={() => handleEdit(String(event.id))}
             className="text-gray-600 hover:text-gray-900 p-1 sm:p-2"
           >
             <Edit className="w-4 h-4" />
@@ -277,7 +299,7 @@ const Events: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleDeleteClick(event.id)}
+            onClick={() => handleDeleteClick(String(event.id))}
             className="text-red-600 hover:text-red-700 p-1 sm:p-2"
           >
             <Trash2 className="w-4 h-4" />
@@ -354,10 +376,10 @@ const Events: React.FC = () => {
       </div>
 
       <Card>
-        <DataTable
+        <DataTable<AdminEvent>
           columns={columns}
           data={paginatedEvents}
-          keyExtractor={(event) => event.id}
+          keyExtractor={(event) => String(event.id)}
           emptyMessage={t("admin.events.no_events")}
         />
 
